@@ -1,10 +1,15 @@
 package types
 
+import "gorm.io/gorm"
+
 type Event struct {
-	ID     string
-	Source string
-	Type   string
-	Action string
+	gorm.Model
+
+	MessageID string
+	TraceID   string
+	Source    string
+	Type      string
+	Action    string
 
 	Actor  string
 	Target string
