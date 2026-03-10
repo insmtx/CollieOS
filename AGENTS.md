@@ -83,6 +83,19 @@ import (
 - Follow dependency injection patterns rather than global variables
 - Use Cobra for command-line interface implementations as shown in main.go files
 
+### Commit Guidelines
+- Follow conventional commits format: `<type>(<scope>): <subject>`
+- Use Chinese for commit messages in SingerOS project
+- Type options include:
+  - `feat`: New feature
+  - `fix`: Bug fixes
+  - `docs`: Documentation updates
+  - `style`: Code style adjustments
+  - `refactor`: Code refactoring
+  - `test`: Testing related
+  - `chore`: Build tool or auxiliary tool changes
+- When applicable, include detailed descriptions in the body covering technical implementation and business logic
+
 ## PROJECT STRUCTURE
 
 - `/backend` - Main Go application code

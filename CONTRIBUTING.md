@@ -69,6 +69,18 @@ make test-cover
 - 为导出函数添加注释
 - 为新增功能编写单元测试
 
+### Commit 规范
+- 使用约定式提交格式：`<type>(<scope>): <subject>`
+- Type 类型包括但不限于：
+  - `feat`: 新功能(feature)
+  - `fix`: 修正缺陷(fix)
+  - `docs`: 文档(documentation)
+  - `style`: 代码格式调整
+  - `refactor`: 重写(refactor)
+  - `test`: 测试相关
+  - `chore`: 构建过程或辅助工具变动
+- 适当情况下，在主体部分详细描述变更内容，包含技术实现和业务说明
+
 ### 文档规范
 - 文档保持清晰、简洁
 - 术语使用保持一致
