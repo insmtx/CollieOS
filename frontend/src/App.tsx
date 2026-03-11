@@ -1,5 +1,5 @@
 import { useState } from 'react';
-
+import { Button } from '@/components/ui/button';
 import viteLogo from '/vite.svg';
 import reactLogo from './assets/react.svg';
 
@@ -27,14 +27,13 @@ function App() {
       <h1 className="mx-auto py-10 text-center font-bold text-6xl text-gray-700">
         Vite + React
       </h1>
-      <div className="flex flex-col items-center p-2">
-        <button
-          type="button"
-          className="rounded-lg bg-slate-100 px-4 py-2 font-semibold outline-none ring-blue-500 transition-all focus:ring-2 hover:ring-1"
-          onClick={() => setCount((count) => count + 1)}
-        >
+      <div className="flex flex-col items-center gap-4 p-2">
+        <Button variant="link" onClick={() => setCount((count) => count + 1)}>
           count is {count}
-        </button>
+        </Button>
+        <Button variant="outline" onClick={() => setCount(0)}>
+          Reset
+        </Button>
         <p className="mt-4">
           Edit <code>src/App.tsx</code> and save to test HMR
         </p>
