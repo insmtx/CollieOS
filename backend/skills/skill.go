@@ -33,6 +33,20 @@ type OutputSchema struct {
 	Properties map[string]*Property `json:"properties"` // 属性映射
 }
 
+// SkillType 定义技能类型的枚举
+type SkillType string
+
+const (
+	LocalSkill  SkillType = "local"  // 本地技能
+	RemoteSkill SkillType = "remote" // 远程API技能
+)
+
+// Permission 定义单个权限项的结构
+type Permission struct {
+	Resource string `json:"resource"` // 资源标识符
+	Action   string `json:"action"`   // 动作权限 (read, write, execute, etc.)
+}
+
 // SkillInfo 定义技能基本信息结构体
 type SkillInfo struct {
 	ID           string       `json:"id"`               // 技能唯一标识符
@@ -42,6 +56,8 @@ type SkillInfo struct {
 	Version      string       `json:"version"`          // 版本号
 	Category     string       `json:"category"`         // 技能类别
 	Icon         string       `json:"icon,omitempty"`   // 图标URL（可选）
+	SkillType    SkillType    `json:"skill_type"`       // 技能类型: 本地或远程API (default: local)
+	Permissions  []Permission `json:"permissions"`      // 所需权限列表
 	InputSchema  InputSchema  `json:"input_schema"`     // 输入参数schema
 	OutputSchema OutputSchema `json:"output_schema"`    // 输出结果schema
 }

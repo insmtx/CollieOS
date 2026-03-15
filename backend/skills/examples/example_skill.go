@@ -22,6 +22,10 @@ func NewExampleSkill() *ExampleSkill {
 				Version:     "1.0.0",
 				Category:    "tool",
 				Author:      "SingerOS Team",
+				SkillType:   skills.LocalSkill,
+				Permissions: []skills.Permission{
+					{Resource: "greetings", Action: "execute"},
+				},
 				InputSchema: skills.InputSchema{
 					Type:     "object",
 					Required: []string{"name"},

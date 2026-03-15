@@ -26,6 +26,8 @@ func TestSkillInterface(t *testing.T) {
 		Description:  "A skill for testing",
 		Version:      "1.0.0",
 		Category:     "utility",
+		SkillType:    LocalSkill,
+		Permissions:  []Permission{{Resource: "test", Action: "execute"}},
 		InputSchema:  InputSchema{},
 		OutputSchema: OutputSchema{},
 	}
