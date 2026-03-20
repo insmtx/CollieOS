@@ -1,6 +1,10 @@
 package types
 
 import (
+	"database/sql/driver"
+	"encoding/json"
+	"fmt"
+
 	"gorm.io/gorm"
 )
 
@@ -27,8 +31,8 @@ type DigitalAssistant struct {
 	// digital_assistant - 版本号，跟踪配置变动版本，INTEGER，默认值0
 	Version int `gorm:"column:version;type:integer;default:0"`
 
-	// digital_assistant - 配置项，包含完整的数字助手配置信息，JSONB，NOT NULL
-	Config AssistantConfig `gorm:"column:config;type:jsonb;not null"`
+	// digital_assistant - 配置项，包含完整的数字助手配置信息，JSON，NOT NULL
+	Config AssistantConfig `gorm:"column:config;type:json;not null"`
 }
 
 // TableName 指定DigitalAssistant结构体对应的数据库表名
@@ -52,6 +56,27 @@ type AssistantConfig struct {
 	Memory MemoryConfig `json:"memory_config"`
 	// 策略配置 - 定义数字助手的安全策略
 	Policies PolicyConfig `json:"policies_config"`
+}
+
+var _ driver.Valuer = (*AssistantConfig)(nil)
+
+// Scan 实现 sql.Scanner 接口，用于从数据库中读取 JSON 数据并解析为 AssistantConfig 结构体
+func (ac *AssistantConfig) Scan(value any) error {
+	if value == nil {
+		return nil
+	}
+
+	bytes, ok := value.([]byte)
+	if !ok {
+		return fmt.Errorf("cannot scan %T into AssistantConfig", value)
+	}
+
+	return json.Unmarshal(bytes, ac)
+}
+
+// Value 实现 driver.Valuer 接口，用于将 AssistantConfig 结构体转换为 JSON 数据存储到数据库中
+func (ac AssistantConfig) Value() (driver.Value, error) {
+	return json.Marshal(ac)
 }
 
 // SkillRef 技能引用定义了数字助手所使用的技能信息
