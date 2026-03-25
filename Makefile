@@ -1,17 +1,45 @@
 PROJECT := SingerOS
 REGISTRY ?= registry.yygu.cn/insmtx/
 
+.PHONY: docker-build docker-build-singer docker-build-skill-proxy docker-push docker-release docker-run
+
 docker-build:
 	docker build -t $(REGISTRY)$(PROJECT):latest -f deployments/build/Dockerfile .
+
+docker-build-singer:
+	docker build --target singer -t $(REGISTRY)$(PROJECT)-singer:latest -f deployments/build/Dockerfile .
+
+docker-build-skill-proxy:
+	docker build --target skill-proxy -t $(REGISTRY)$(PROJECT)-skill-proxy:latest -f deployments/build/Dockerfile .
+
+docker-build-all: docker-build-singer docker-build-skill-proxy
 
 docker-push:
 	docker push $(REGISTRY)$(PROJECT):latest
 
+docker-push-singer:
+	docker push $(REGISTRY)$(PROJECT)-singer:latest
+
+docker-push-skill-proxy:
+	docker push $(REGISTRY)$(PROJECT)-skill-proxy:latest
+
+docker-push-all: docker-push-singer docker-push-skill-proxy
+
 docker-release: docker-build docker-push
+
+docker-release-all: docker-build-all docker-push-all
 
 docker-run:
 	-docker rm -f $(PROJECT)-dev
 	docker run -d --name $(PROJECT)-dev -p 8080:8080 $(REGISTRY)$(PROJECT):latest
+
+docker-run-singer:
+	-docker rm -f $(PROJECT)-singer-dev
+	docker run -d --name $(PROJECT)-singer-dev -p 8080:8080 $(REGISTRY)$(PROJECT)-singer:latest
+
+docker-run-skill-proxy:
+	-docker rm -f $(PROJECT)-skill-proxy-dev
+	docker run -d --name $(PROJECT)-skill-proxy-dev -p 8081:8080 $(REGISTRY)$(PROJECT)-skill-proxy:latest
 
 install-protoc:
 	which protoc || (echo "protoc not found, please install it first" && exit 1)
