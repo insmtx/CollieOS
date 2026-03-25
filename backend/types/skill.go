@@ -20,9 +20,9 @@ type Skill struct {
 	// 技能版本号
 	Version string `gorm:"column:version;type:varchar(50);not null"`
 	// 技能类别（例如："integration","tool","workflow","ai"等）
-	Category string `gorm:"column:category;type:varchar(100);not null;index"`
+	Category string `gorm:"column:category;type:varchar(100);not null;index"` // 建议使用 types.SkillCategory 定义的常量值
 	// 技能类型（本地技能或远程技能）
-	SkillType string `gorm:"column:skill_type;type:varchar(50);not null"`
+	SkillType string `gorm:"column:skill_type;type:varchar(50);not null"` // 建议使用 types.SkillType 定义的常量值
 	// 技能作者
 	Author string `gorm:"column:author;type:varchar(255)"`
 	// 输入参数Schema定义
@@ -34,7 +34,7 @@ type Skill struct {
 	// 技能配置
 	Config map[string]interface{} `gorm:"column:config;type:jsonb"`
 	// 状态：active, inactive, deprecated
-	Status string `gorm:"column:status;type:varchar(50);not null;default:active"`
+	Status string `gorm:"column:status;type:varchar(50);not null;default:active"` // 建议使用 types.SkillStatus 定义的常量值
 	// 是否为系统内置技能
 	IsSystem bool `gorm:"column:is_system;type:boolean;default:false"`
 }

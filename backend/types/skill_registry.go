@@ -14,7 +14,7 @@ type SkillRegistry struct {
 	// 技能认证令牌
 	Token string `gorm:"column:token;type:varchar(255)"`
 	// 注册状态（registered, unregistered, unhealthy等）
-	Status string `gorm:"column:status;type:varchar(50);not null;default:registered"`
+	Status string `gorm:"column:status;type:varchar(50);not null;default:registered"` // 建议使用 types.SkillRegistryStatus 定义的常量值
 	// 最后心跳时间
 	LastHeartbeat string `gorm:"column:last_heartbeat;type:timestamp"`
 	// 健康状态

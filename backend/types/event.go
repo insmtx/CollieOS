@@ -8,8 +8,8 @@ type Event struct {
 	MessageID string
 	TraceID   string
 	Source    string
-	Type      string
-	Action    string
+	Type      string // 建议使用 types.EventType 定义的常量值
+	Action    string // 建议使用 types.EventAction 定义的常量值
 
 	Actor  string
 	Target string

@@ -16,9 +16,8 @@ func ConvertToDBModel(skill Skill) *types.Skill {
 		Version:      info.Version,
 		Category:     info.Category,
 		SkillType:    string(info.SkillType),
-		Icon:         info.Icon,
-		InputSchema:  interfaceMap(info.InputSchema),
-		OutputSchema: interfaceMap(info.OutputSchema),
+		InputSchema:  inputSchemaToMap(info.InputSchema),
+		OutputSchema: outputSchemaToMap(info.OutputSchema),
 		Permissions:  permissionsToInterfaceSlice(info.Permissions),
 		Config:       map[string]interface{}{},
 		Status:       "active",
@@ -60,7 +59,107 @@ func permissionsToInterfaceSlice(perms []Permission) []interface{} {
 	return result
 }
 
-// convertToInputSchema 转换输入 schema
+// inputSchemaToMap 将InputSchema结构转换为map
+func inputSchemaToMap(schema InputSchema) map[string]interface{} {
+	result := make(map[string]interface{})
+
+	result["type"] = schema.Type
+
+	if len(schema.Required) > 0 {
+		result["required"] = schema.Required
+	}
+
+	if len(schema.Properties) > 0 {
+		props := make(map[string]interface{})
+		for k, v := range schema.Properties {
+			props[k] = propertyToMap(v)
+		}
+		result["properties"] = props
+	}
+
+	return result
+}
+
+// outputSchemaToMap 将OutputSchema结构转换为map
+func outputSchemaToMap(schema OutputSchema) map[string]interface{} {
+	result := make(map[string]interface{})
+
+	result["type"] = schema.Type
+
+	if len(schema.Required) > 0 {
+		result["required"] = schema.Required
+	}
+
+	if len(schema.Properties) > 0 {
+		props := make(map[string]interface{})
+		for k, v := range schema.Properties {
+			props[k] = propertyToMap(v)
+		}
+		result["properties"] = props
+	}
+
+	return result
+}
+
+// propertyToMap 将Property结构转换为map
+func propertyToMap(prop *Property) map[string]interface{} {
+	result := make(map[string]interface{})
+
+	if prop.Type != "" {
+		result["type"] = prop.Type
+	}
+
+	if prop.Title != "" {
+		result["title"] = prop.Title
+	}
+
+	if prop.Description != "" {
+		result["description"] = prop.Description
+	}
+
+	if prop.Default != nil {
+		result["default"] = prop.Default
+	}
+
+	if prop.Items != nil {
+		result["items"] = propertyToMap(prop.Items)
+	}
+
+	if len(prop.Enum) > 0 {
+		result["enum"] = prop.Enum
+	}
+
+	return result
+}
+
+// convertToPermissions 转换权限切片
+func convertToPermissions(interfs []interface{}) []Permission {
+	perms := make([]Permission, 0)
+
+	for _, interf := range interfs {
+		if permMap, ok := interf.(map[string]interface{}); ok {
+			var perm Permission
+
+			if resource, exists := permMap["resource"]; exists {
+				if resourceStr, ok := resource.(string); ok {
+					perm.Resource = resourceStr
+				}
+			}
+
+			if action, exists := permMap["action"]; exists {
+				if actionStr, ok := action.(string); ok {
+					perm.Action = actionStr
+				}
+			}
+
+			perms = append(perms, perm)
+		}
+	}
+
+	return perms
+}
+
+// convertToInputSchema 将interface{}类型的map转换为InputSchema
 func convertToInputSchema(interf map[string]interface{}) InputSchema {
 	if interf == nil {
 		return InputSchema{}
@@ -90,7 +189,7 @@ func convertToInputSchema(interf map[string]interface{}) InputSchema {
 		properties := make(map[string]*Property)
 		if propMap, ok := v.(map[string]interface{}); ok {
 			for k, v := range propMap {
-				properties[k] = convertInterfaceToProperty(v)
+				properties[k] = mapToProperty(v)
 			}
 			schema.Properties = properties
 		}
@@ -99,7 +198,7 @@ func convertToInputSchema(interf map[string]interface{}) InputSchema {
 	return schema
 }
 
-// convertToOutputSchema 转换输出 schema
+// convertToOutputSchema 将interface{}类型的map转换为OutputSchema
 func convertToOutputSchema(interf map[string]interface{}) OutputSchema {
 	if interf == nil {
 		return OutputSchema{}
@@ -129,7 +228,7 @@ func convertToOutputSchema(interf map[string]interface{}) OutputSchema {
 		properties := make(map[string]*Property)
 		if propMap, ok := v.(map[string]interface{}); ok {
 			for k, v := range propMap {
-				properties[k] = convertInterfaceToProperty(v)
+				properties[k] = mapToProperty(v)
 			}
 			schema.Properties = properties
 		}
@@ -138,8 +237,8 @@ func convertToOutputSchema(interf map[string]interface{}) OutputSchema {
 	return schema
 }
 
-// convertInterfaceToProperty 将interface{}转为Property
-func convertInterfaceToProperty(interf interface{}) *Property {
+// mapToProperty 将interface{}转为Property
+func mapToProperty(interf interface{}) *Property {
 	prop := &Property{}
 
 	if m, ok := interf.(map[string]interface{}); ok {
@@ -166,7 +265,7 @@ func convertInterfaceToProperty(interf interface{}) *Property {
 		}
 
 		if v, ok := m["items"]; ok {
-			prop.Items = convertInterfaceToProperty(v)
+			prop.Items = mapToProperty(v)
 		}
 
 		if v, ok := m["enum"]; ok {
@@ -183,31 +282,4 @@ func convertInterfaceToProperty(interf interface{}) *Property {
 	}
 
 	return prop
-}
-
-// convertToPermissions 转换权限切片
-func convertToPermissions(interfs []interface{}) []Permission {
-	perms := make([]Permission, 0)
-
-	for _, interf := range interfs {
-		if permMap, ok := interf.(map[string]interface{}); ok {
-			var perm Permission
-
-			if resource, exists := permMap["resource"]; exists {
-				if resourceStr, ok := resource.(string); ok {
-					perm.Resource = resourceStr
-				}
-			}
-
-			if action, exists := permMap["action"]; exists {
-				if actionStr, ok := action.(string); ok {
-					perm.Action = actionStr
-				}
-			}
-
-			perms = append(perms, perm)
-		}
-	}
-
-	return perms
 }
