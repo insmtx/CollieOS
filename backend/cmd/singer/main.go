@@ -13,6 +13,7 @@ import (
 	"github.com/insmtx/SingerOS/backend/config"
 	"github.com/insmtx/SingerOS/backend/interaction/eventbus/rabbitmq"
 	gateway "github.com/insmtx/SingerOS/backend/interaction/gateway"
+	orchestrator "github.com/insmtx/SingerOS/backend/orchestrator"
 	"github.com/spf13/cobra"
 	ygconfig "github.com/ygpkg/yg-go/config"
 	"github.com/ygpkg/yg-go/logs"
@@ -43,6 +44,9 @@ var rootCmd = &cobra.Command{
 			return
 		}
 
+		// Create orchestrator to consume events
+		orchestratorInstance := orchestrator.NewOrchestrator(publisher)
+
 		// Set up the HTTP router
 		r := gin.Default()
 
@@ -57,6 +61,14 @@ var rootCmd = &cobra.Command{
 
 		logs.Info("Starting SingerOS backend service...")
 		logs.Infof("Listening on %s", httpAddr)
+
+		// Start orchestrator to consume events
+		ctx := context.Background()
+		if err := orchestratorInstance.Start(ctx); err != nil {
+			logs.Errorf("Failed to start orchestrator: %v", err)
+		} else {
+			logs.Info("Orchestrator started successfully")
+		}
 
 		// Start the server in a goroutine
 		go func() {

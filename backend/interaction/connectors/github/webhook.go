@@ -45,7 +45,18 @@ func (c *GitHubConnector) HandleWebhook(
 
 	interactionEvent := c.convertEvent(eventType, event)
 
-	c.publisher.Publish(ctx, interaction.TopicGithubIssueComment, interactionEvent)
+	// 根据事件类型选择合适的主题
+	var topicName string
+	switch eventType {
+	case "issue_comment":
+		topicName = interaction.TopicGithubIssueComment
+	case "pull_request":
+		topicName = interaction.TopicGithubPullRequest
+	default:
+		topicName = interaction.TopicGithubIssueComment // 默认主题
+	}
+
+	c.publisher.Publish(ctx, topicName, interactionEvent)
 
 	w.WriteHeader(200)
 }
