@@ -6,6 +6,9 @@ FROM registry.yygu.cn/library/golang:1.24 AS builder
 
 WORKDIR /build
 
+RUN sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list.d/debian.sources
+ENV GOPROXY=https://goproxy.cn,direct
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     ca-certificates \
