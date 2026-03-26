@@ -70,6 +70,7 @@ services:
       - GIN_MODE=release
     volumes:
       - ./config.yaml:/app/config.yaml
+    command: ["./singer", "--config", "/app/config.yaml"]
     restart: unless-stopped
 
 volumes:
