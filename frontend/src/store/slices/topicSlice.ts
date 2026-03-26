@@ -94,14 +94,14 @@ export class TopicActionImpl {
 
     this.#set({ topicsInit: true });
 
-    try {
-      // TODO: Replace with actual service call
-      // const topics = await topicService.fetchAll();
-      // this.#dispatchTopic({ type: 'setTopics', value: topics });
-    } catch (error) {
-      this.#set({ topicsInit: false });
-      throw error;
-    }
+    // TODO: Replace with actual service call
+    // try {
+    //   const topics = await topicService.fetchAll();
+    //   this.#dispatchTopic({ type: 'setTopics', value: topics });
+    // } catch (error) {
+    //   this.#set({ topicsInit: false });
+    //   throw error;
+    // }
   };
 
   // ==================== Internal Actions ====================

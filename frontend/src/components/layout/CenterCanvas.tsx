@@ -50,6 +50,13 @@ const mockMessages: Message[] = [
 
 const modelOptions = ['GPT-4', 'Claude-3', 'DeepSeek'];
 
+function formatTime(timestamp: number) {
+  return new Date(timestamp).toLocaleTimeString('zh-CN', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 export function CenterCanvas() {
   const { activeConversationId, setInputFocused } = useLayoutStore(
     (state) => state,
@@ -61,14 +68,6 @@ export function CenterCanvas() {
   const handleSend = () => {
     if (!inputValue.trim()) return;
     setInputValue('');
-  };
-
-  const formatTime = (timestamp: number) => {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString('zh-CN', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
   };
 
   return (
