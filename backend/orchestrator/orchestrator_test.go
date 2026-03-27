@@ -5,14 +5,16 @@ import (
 	"testing"
 
 	"github.com/insmtx/SingerOS/backend/interaction"
+	skills "github.com/insmtx/SingerOS/backend/skills"
 )
 
 // 测试Orchestrator是否可以初始化并注册默认处理器
 func TestOrchestratorInit(t *testing.T) {
 	// 创建一个简单的subscriber实现
 	subscriber := &mockSubscriber{}
+	skillManager := skills.NewSimpleSkillManager()
 
-	orchestrator := NewOrchestrator(subscriber)
+	orchestrator := NewOrchestrator(subscriber, skillManager)
 
 	// 验证默认事件处理器被正确注册
 	if _, exists := orchestrator.handlers["interaction.github.issue_comment"]; !exists {
@@ -27,7 +29,8 @@ func TestOrchestratorInit(t *testing.T) {
 // 辅助方法测试 - 验证注册和获取处理函数
 func TestOrchestratorRegisterAndGet(t *testing.T) {
 	subscriber := &mockSubscriber{}
-	orchestrator := NewOrchestrator(subscriber)
+	skillManager := skills.NewSimpleSkillManager()
+	orchestrator := NewOrchestrator(subscriber, skillManager)
 
 	// 注册一个自定义处理器
 	customTopic := "test.custom.topic"

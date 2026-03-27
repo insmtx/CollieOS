@@ -11,6 +11,7 @@ import (
 
 	"github.com/insmtx/SingerOS/backend/interaction"
 	"github.com/insmtx/SingerOS/backend/interaction/eventbus"
+	skills "github.com/insmtx/SingerOS/backend/skills"
 	"github.com/ygpkg/yg-go/logs"
 )
 
@@ -19,15 +20,17 @@ type EventHandlerFunc func(ctx context.Context, event *interaction.Event) error
 
 // Orchestrator 是事件编排器，负责事件的订阅、分发和处理
 type Orchestrator struct {
-	subscriber eventbus.Subscriber         // 事件订阅者
-	handlers   map[string]EventHandlerFunc // 事件主题到处理器的映射
+	subscriber   eventbus.Subscriber         // 事件订阅者
+	skillManager skills.SkillManager         // 技能管理器
+	handlers     map[string]EventHandlerFunc // 事件主题到处理器的映射
 }
 
 // NewOrchestrator 创建一个新的事件编排器实例
-func NewOrchestrator(subscriber eventbus.Subscriber) *Orchestrator {
+func NewOrchestrator(subscriber eventbus.Subscriber, skillManager skills.SkillManager) *Orchestrator {
 	orchestrator := &Orchestrator{
-		subscriber: subscriber,
-		handlers:   make(map[string]EventHandlerFunc),
+		subscriber:   subscriber,
+		skillManager: skillManager,
+		handlers:     make(map[string]EventHandlerFunc),
 	}
 
 	// 注册默认处理器
@@ -111,6 +114,24 @@ func (o *Orchestrator) handlePullRequest(ctx context.Context, event *interaction
 
 	// 记录payload中的详细信息以便进行处理
 	logs.DebugContextf(ctx, "GitHub Pull Request Payload: %+v", event.Payload)
+
+	// 调用 Echo 技能看到技能管理器是否正常工作
+	title, ok := event.Payload.(map[string]interface{})["title"]
+	if !ok {
+		title = "No Title"
+	}
+
+	echoInput := map[string]interface{}{
+		"input": fmt.Sprintf("New PR received: %s, Action: %s", title, action),
+	}
+
+	echoResult, err := o.skillManager.Execute(ctx, "echo.simple_echo", echoInput)
+	if err != nil {
+		logs.ErrorContextf(ctx, "Failed to execute echo skill: %v", err)
+		return nil // 错误不应影响主流程
+	}
+
+	logs.InfoContextf(ctx, "Echo skill result: %v", echoResult)
 
 	return nil
 }

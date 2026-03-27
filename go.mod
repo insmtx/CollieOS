@@ -8,6 +8,7 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/rabbitmq/amqp091-go v1.10.0
 	github.com/spf13/cobra v1.10.2
+	github.com/stretchr/testify v1.10.0
 	github.com/ygpkg/yg-go v1.23.51
 	gorm.io/gorm v1.30.1
 )
@@ -22,6 +23,7 @@ require (
 	github.com/cenkalti/backoff/v4 v4.1.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudwego/base64x v0.1.6 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/gabriel-vasile/mimetype v1.4.9 // indirect
 	github.com/gin-contrib/sse v1.1.0 // indirect
@@ -51,6 +53,7 @@ require (
 	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/silenceper/wechat/v2 v2.1.6 // indirect
 	github.com/spf13/pflag v1.0.9 // indirect

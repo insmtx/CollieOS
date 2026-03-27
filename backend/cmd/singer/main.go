@@ -20,6 +20,8 @@ import (
 	"github.com/insmtx/SingerOS/backend/interaction/eventbus/rabbitmq"
 	gateway "github.com/insmtx/SingerOS/backend/interaction/gateway"
 	orchestrator "github.com/insmtx/SingerOS/backend/orchestrator"
+	skills "github.com/insmtx/SingerOS/backend/skills"
+	echo_skill "github.com/insmtx/SingerOS/backend/skills/tool_skills/echo_skill"
 	"github.com/spf13/cobra"
 	ygconfig "github.com/ygpkg/yg-go/config"
 	"github.com/ygpkg/yg-go/logs"
@@ -56,8 +58,18 @@ var rootCmd = &cobra.Command{
 			return
 		}
 
-		// Create orchestrator to consume events
-		orchestratorInstance := orchestrator.NewOrchestrator(publisher)
+		// Initialize skill manager
+		skillManager := skills.NewSimpleSkillManager()
+
+		// Register echo skill
+		echoSkill := echo_skill.NewEchoSkill()
+		if err := skillManager.Register(echoSkill); err != nil {
+			logs.Fatalf("Failed to register echo skill: %v", err)
+			return
+		}
+
+		// Create orchestrator to consume events with skill manager
+		orchestratorInstance := orchestrator.NewOrchestrator(publisher, skillManager)
 
 		// Initialize database if configuration is provided
 		var db *gorm.DB
