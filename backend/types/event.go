@@ -14,7 +14,7 @@ type Event struct {
 	Actor  string
 	Target string
 
-	Payload map[string]any
+	Payload map[string]interface{} `gorm:"type:jsonb"`
 
 	Timestamp int64
 }

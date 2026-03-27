@@ -44,7 +44,6 @@ func (c *Connector) handleWebhook(ctx *gin.Context) {
 		}
 	} else {
 		logs.Warn("GitHub webhook_secret not configured - skipping signature verification")
-		logs.Warn("For production security, please configure a webhook_secret")
 	}
 
 	eventType := github.WebHookType(r)
