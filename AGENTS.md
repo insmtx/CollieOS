@@ -1,40 +1,40 @@
-# SingerOS Agent Development Guidelines
+# SingerOS Agent 开发指南
 
-This document contains essential information for AI agents working with the SingerOS codebase.
+本文档包含了 AI Agent 使用 SingerOS 代码库的重要信息。
 
-## BUILD/LINT/TEST COMMANDS
+## 构建/检查/测试 命令
 
-### Build Commands
-- `go build -o ./bundles/singer ./backend/cmd/singer/main.go` - Build the main SingerOS backend service (output to `./bundles/`)
-- `go build -o ./bundles/skill-proxy ./backend/cmd/skill-proxy/main.go` - Build the Skill Proxy service (output to `./bundles/`)
-- `make docker-build` - Build Docker image (tag: registry.yygu.cn/insmtx/SingerOS:latest)
-- `make docker-run` - Run the Docker image locally
-- `make run` - Start docker-compose services in foreground mode
-- `make run-detached` - Start docker-compose services in detached mode (background)
-- `make stop` - Stop docker-compose services
-- `make logs` - View docker-compose service logs
+### 构建命令
+- `go build -o ./bundles/singer ./backend/cmd/singer/main.go` - 构建主 SingerOS 后端服务（输出到 `./bundles/`）
+- `go build -o ./bundles/skill-proxy ./backend/cmd/skill-proxy/main.go` - 构建 Skill Proxy 服务（输出到 `./bundles/`）
+- `make docker-build` - 构建 Docker 镜像（标签：registry.yygu.cn/insmtx/SingerOS:latest）
+- `make docker-run` - 在本地运行 Docker 镜像
+- `make run` - 以前台模式启动 docker-compose 服务
+- `make run-detached` - 以分离模式（后台）启动 docker-compose 服务
+- `make stop` - 停止 docker-compose 服务
+- `make logs` - 查看 docker-compose 服务日志
 
-### Test Commands
-- `go test ./...` - Run all tests in the project
-- `go test -v ./...` - Run all tests with verbose output
-- `go test ./backend/path/to/package` - Run tests for a specific package
-- `go test -run ^TestFunctionName$ ./backend/path` - Run a specific test function
-- `go test -race ./...` - Run all tests with race condition detection
-- `go test -cover ./...` - Run tests and display coverage information
+### 测试命令
+- `go test ./...` - 运行项目中所有测试
+- `go test -v ./...` - 以详细输出方式运行所有测试
+- `go test ./backend/path/to/package` - 运行特定包的测试
+- `go test -run ^TestFunctionName$ ./backend/path` - 运行特定测试函数
+- `go test -race ./...` - 运行所有检测竞态条件的测试
+- `go test -cover ./...` - 运行测试并显示覆盖率信息
 
-### Lint Commands
-- `go fmt ./...` - Format all Go code
-- `go vet ./...` - Vet all Go code for common mistakes
-- `golint ./...` - Lint all Go code (install via `go install golang.org/x/lint/golint@latest`)
-- `gofmt -s -w .` - Simplify code and write changes (as per the existing Makefile)
-- `staticcheck ./...` - Comprehensive Go static analysis (if installed)
+### 检查命令
+- `go fmt ./...` - 格式化所有 Go 代码
+- `go vet ./...` - 检查所有 Go 代码中的常见错误
+- `golint ./...` - 检查所有 Go 代码（通过 `go install golang.org/x/lint/golint@latest` 安装）
+- `gofmt -s -w .` - 简化代码并写入更改（按照现有 Makefile）
+- `staticcheck ./...` - 全面的 Go 静态分析（如已安装）
 
-## CODE STYLE GUIDELINES
+## 代码风格指南
 
-### Import Organization
-- Group imports with blank lines between standard library, third-party, and project-specific packages
-- Use semantic import aliases only when they prevent naming conflicts
-- Organize in three groups: stdlib, third-party, internal packages
+### 导入组织
+- 在标准库、第三方和项目特定包之间用空行分组导入
+- 仅在防止命名冲突时使用语义导入别名
+- 组织成三组：stdlib，第三方，内部包
 ```
 import (
 	"fmt"
@@ -47,99 +47,99 @@ import (
 )
 ```
 
-### Formatting Conventions
-- Use tabs for indentation, not spaces (as verified from existing Go files)
-- Execute `go fmt ./...` before committing
-- Keep lines under 120 characters where possible
-- Use `gofmt -s` for simplification of code
+### 格式约定
+- 使用制表符进行缩进，而不是空格（从现有 Go 文件验证过）
+- 提交前执行 `go fmt ./...`
+- 尽可能保持每行少于 120 个字符
+- 使用 `gofmt -s` 简化代码
 
-### Naming Conventions
-- Use CamelCase for exported functions/types (`GetUser`, `UserService`)
-- Use camelCase for unexported/internal functions/types (`getUser`, `userService`)
-- Use clear, descriptive names; prefer clarity over brevity
-- Use consistent names for similar concepts across packages
-- Variables related to the system should reference SingerOS concepts
+### 命名约定
+- 对于导出的函数/类型使用驼峰命名法（`GetUser`，`UserService`）
+- 对于未导出/内部函数/类型使用小写驼峰命名法（`getUser`，`userService`）
+- 使用清晰、描述性的名称；优先考虑清晰度而不是简洁性
+- 在包之间对类似概念使用一致的名称
+- 与系统相关的变量应引用 SingerOS 概念
 
-### Types and Interfaces
-- Define interfaces close to their first usage
-- Keep interfaces small, typically one or a few methods
-- Name interface types with "-er" suffix when applicable (e.g., `Runner`, `Handler`)
-- Use concrete types explicitly in function signatures when interface is not needed
-- Prefer returning pointers for structs when passing to functions if they will be modified
+### 类型和接口
+- 在第一次使用附近定义接口
+- 保持接口小，通常是一个或几个方法
+- 在适用时，用 "-er" 后缀命名接口类型（例如，`Runner`，`Handler`）
+- 在不需要接口时，在函数签名中明确使用具体类型
+- 当传递给函数且会被修改时，倾向于返回结构体的指针
 
-### Error Handling
-- Handle errors explicitly; don't ignore them
-- Use specific error types when appropriate with wrapped errors
-- Follow the pattern: "if err != nil { return err }"
-- Use `errors.New()` for simple static strings
-- Use `fmt.Errorf()` with `%w` verb for wrapping errors with more context
-- Log errors contextually when appropriate
+### 错误处理
+- 显式处理错误；不要忽略它们
+- 在适当的情况下使用具体的错误类型并包装错误
+- 遵循以下模式："if err != nil { return err }"
+- 对简单的静态字符串使用 `errors.New()`
+- 使用 `fmt.Errorf()` 和 `%w` 动词来包装带有更多上下文的错误
+- 适当时记录错误上下文
 
-### Additional Guidelines
-- All public functions must have GoDoc comments
-- Comments should be in English and explain why rather than what
-- Maintain consistent logging format throughout the application
-- Use context.Context appropriately for cancellation and request-scoped values
-- Follow dependency injection patterns rather than global variables
-- Use Cobra for command-line interface implementations as shown in main.go files
+### 附加准则
+- 所有公共函数必须有 GoDoc 注释
+- 注释应采用英文，并解释原因而非内容
+- 在整个应用程序中维护一致的日志格式
+- 适当地使用 context.Context 进行取消和请求作用域值
+- 遵循依赖注入模式而不是全局变量
+- 使用 Cobra 进行命令行界面实现，如 main.go 文件所示
 
-### Commit Guidelines
-- Follow conventional commits format: `<type>(<scope>): <subject>`
-- Use Chinese for commit messages in SingerOS project
-- Type options include:
-  - `feat`: New feature
-  - `fix`: Bug fixes
-  - `docs`: Documentation updates
-  - `style`: Code style adjustments
-  - `refactor`: Code refactoring
-  - `test`: Testing related
-  - `chore`: Build tool or auxiliary tool changes
-- When applicable, include detailed descriptions in the body covering technical implementation and business logic
+### 提交准则
+- 遵循约定式提交格式：<type>(<scope>): <subject>
+- 在 SingerOS 项目中使用中文作为提交消息
+- 类型选项包括：
+  - `feat`：新功能
+  - `fix`：修复错误
+  - `docs`：文档更新
+  - `style`：代码风格调整
+  - `refactor`：重构代码
+  - `test`：测试相关
+  - `chore`：构建工具或辅助工具变更
+- 适当时，在正文部分包含技术实现和业务逻辑的详细描述
 
-## PROJECT STRUCTURE
+## 项目结构
 
-- `/backend` - Main Go application code
-  - `/backend/cmd/singer` - Main SingerOS backend service entry point
-  - `/backend/cmd/skill-proxy` - Skill Proxy service entry point
-  - `/backend/config` - Configuration loading and types
-  - `/backend/gateway` - HTTP gateway package
-  - `/backend/interaction` - Event-driven interaction layer
-    - `/backend/interaction/connectors` - Channel connectors (GitHub implemented; GitLab, WeWork stubs)
-    - `/backend/interaction/eventbus` - Event bus abstraction (RabbitMQ implementation)
-    - `/backend/interaction/gateway` - Event gateway setup
-  - `/backend/skills` - Skill interface, types, and examples
-  - `/backend/types` - Core domain types (DigitalAssistant, Event, etc.)
-- `/bundles` - Build output directory (generated; gitignored)
-- `/deployments/build/Dockerfile` - Container build configuration
-- `/docs` - Documentation files
-- `/proto` - Protobuf definitions
-- `/gen` - Generated protobuf Go/Node code
-- `/frontend` - Frontend application
+- `/backend` - 主要 Go 应用程序代码
+  - `/backend/cmd/singer` - 主 SingerOS 后端服务入口点
+  - `/backend/cmd/skill-proxy` - Skill Proxy 服务入口点
+  - `/backend/config` - 配置加载和类型
+  - `/backend/gateway` - HTTP 网关包
+  - `/backend/interaction` - 事件驱动交互层
+    - `/backend/interaction/connectors` - 渠道连接器（GitHub 已实现；GitLab，WeWork 桩代码）
+    - `/backend/interaction/eventbus` - 事件总线抽象（RabbitMQ 实现）
+    - `/backend/interaction/gateway` - 事件网关设置
+  - `/backend/skills` - Skill 接口、类型和示例
+  - `/backend/types` - 核心领域类型（DigitalAssistant，Event 等）
+- `/bundles` - 构建输出目录（生成；已忽略 git）
+- `/deployments/build/Dockerfile` - 容器构建配置
+- `/docs` - 文档文件
+- `/proto` - Protobuf 定义
+- `/gen` - 生成的 protobuf Go/Node 代码
+- `/frontend` - 前端应用
 
-## CONTRIBUTION NOTES
+## 贡献说明
 
-- See CONTRIBUTING.md for commit message style guidance
-- Make sure all tests pass (`go test ./...`) before submitting changes
-- Follow Go's idiomatic patterns and standard practices
-- When implementing, consider how components fit into the broader architecture described in ARCHITECTURE.md
+- 查阅 CONTRIBUTING.md 了解提交消息风格指导
+- 在提交更改前确保所有测试通过 (`go test ./...`)
+- 遵循 Go 的习惯用法和标准实践
+- 实现时考虑组件如何融入 ARCHITECTURE.md 描述的更广泛架构
 
-## Core Components and Architecture
+## 核心组件和架构
 
-Based on the AI OS architecture described in ARCHITECTURE.md, the SingerOS platform consists of the following primary components:
+基于 ARCHITECTURE.md 中描述的 AI OS 架构，SingerOS 平台包含以下主要组件：
 
-1. **Event Gateway** - Receives external events from various channels (✅ implemented)
-2. **Event Bus** - Message queue system for decoupling components (✅ RabbitMQ implemented)
-3. **Orchestrator** - Core scheduling and coordination mechanism (🔄 planned)
-4. **DigitalAssistant** - Top-level abstraction representing AI workers (✅ types defined)
-5. **Agent** - Decision-making entities within DigitalAssistants (🔄 planned)
-6. **Skill** - Reusable capabilities that can be invoked (✅ interface and base implementation done)
-7. **Skill Proxy** - Isolated skill execution service (✅ service skeleton implemented)
-8. **Model Router** - Multi-provider LLM routing (🔄 planned)
-9. **Memory System** - Short-term and long-term memory (🔄 planned)
+1. **Event Gateway** - 接收来自各种渠道的外部事件（✅ 已实现）
+2. **Event Bus** - 用于解耦组件的消息队列系统（✅ RabbitMQ 已实现）
+3. **Orchestrator** - 核心调度和协调机制（🔄 计划中）
+4. **DigitalAssistant** - 表示 AI worker 的顶级抽象（✅ 类型已定义）
+5. **Agent** - DigitalAssistant 中的决策实体（🔄 计划中）
+6. **Skill** - 可调用的可重用功能（✅ 接口和基础实现已完成）
+7. **Skill Proxy** - 隔离技能执行服务（✅ 服务框架已实现）
+8. **Model Router** - 多提供商 LLM 路由（🔄 计划中）
+9. **Memory System** - 短期和长期记忆（🔄 计划中）
 
-## Skill System Definition
+## 技能系统定义
 
-Skills represent core building blocks in SingerOS. The `Skill` interface is defined in `backend/skills/skill.go`:
+Skills 代表 SingerOS 中的核心构建块。`Skill` 接口在 `backend/skills/skill.go` 中定义：
 
 ```go
 type Skill interface {
@@ -152,7 +152,7 @@ type Skill interface {
 }
 ```
 
-`SkillInfo` contains the skill's metadata:
+`SkillInfo` 包含技能的元数据：
 
 ```
 skill.id
@@ -166,26 +166,26 @@ skill.output_schema
 skill.permissions
 ```
 
-Embed `BaseSkill` to reduce boilerplate when implementing a new skill.
+嵌入 `BaseSkill` 以减少实现新技能时的样板代码。
 
-### Skill Categories
+### 技能类别
 
-- **Integration Skills** - External system integrations (GitHub, GitLab, WeChat, Feishu, Jira)
-- **AI Skills** - LLM-based reasoning capabilities (code_review, summarize, classification)
-- **Tool Skills** - Utility capabilities (run_shell, execute_python, http_request)
-- **Workflow Skills** - Complex coordinated operations (pr_review_workflow, bug_triage_workflow)
+- **Integration Skills** - 外部系统集成（GitHub，GitLab，WeChat，Feishu，Jira）
+- **AI Skills** - 基于 LLM 的推理能力（code_review, summarize, classification）
+- **Tool Skills** - 实用功能（run_shell, execute_python, http_request）
+- **Workflow Skills** - 复杂的协调操作（pr_review_workflow, bug_triage_workflow）
 
-## CHANNEL INTEGRATION
+## 渠道集成
 
-Support for multiple interaction channels via the `Connector` interface in `backend/interaction/connectors/connector.go`:
+通过 `backend/interaction/connectors/connector.go` 中的 `Connector` 接口支持多个交互渠道：
 
-- **GitHub** (✅ implemented) - Webhook, event parsing, signature verification
-- **GitLab** (🔄 stub)
-- **Enterprise WeChat / WeWork** (🔄 stub)
-- **Feishu** (🔄 planned)
-- **App / Webhook** (🔄 planned)
+- **GitHub** （✅ 已实现） - Webhook，事件解析，签名验证
+- **GitLab** （🔄 桩代码）
+- **Enterprise WeChat / WeWork** （🔄 桩代码）
+- **Feishu** （🔄 计划中）
+- **App / Webhook** （🔄 计划中）
 
-Each channel implements the `Connector` interface:
+每个渠道都实现了 `Connector` 接口：
 
 ```go
 type Connector interface {
@@ -194,170 +194,170 @@ type Connector interface {
 }
 ```
 
-Events are normalized into the `interaction.Event` type and published to the Event Bus (RabbitMQ).
+事件被标准化为 `interaction.Event` 类型并发布到事件总线（RabbitMQ）。
 
-## Permissions and Security
+## 权限和安全
 
-Granular permissions control at multiple levels:
+多级别精细权限控制：
 
 - DigitalAssistant
 - Agent
 - Skill
 - Tool
 
-Permission model: RBAC + Capability
+权限模型：RBAC + Capability
 
-## GOLANG ENGINE STRUCTURE
+## Golang 引擎结构
 
-Actual code structure as of the current implementation:
+当前实现的实际代码结构：
 
 ```
 SingerOS/
 │
 ├── backend/
 │   ├── cmd/
-│   │   ├── singer/          # Main backend service (HTTP + event gateway)
-│   │   └── skill-proxy/     # Skill Proxy service
+│   │   ├── singer/          # 主后端服务（HTTP + 事件网关）
+│   │   └── skill-proxy/     # Skill Proxy 服务
 │   │
-│   ├── config/              # Config loading and types (GitHub app config, etc.)
+│   ├── config/              # 配置加载和类型（GitHub app config，等）
 │   │
-│   ├── gateway/             # HTTP gateway (placeholder for future routes)
+│   ├── gateway/             # HTTP 网关（为未来路由的占位符）
 │   │
-│   ├── interaction/         # Event-driven interaction layer
+│   ├── interaction/         # 事件驱动交互层
 │   │   ├── connectors/
-│   │   │   ├── github/      # GitHub webhook connector (✅ implemented)
-│   │   │   ├── gitlab/      # GitLab connector (🔄 stub)
-│   │   │   └── wework/      # WeWork/企业微信 connector (🔄 stub)
+│   │   │   ├── github/      # GitHub webhook 连接器（✅ 已实现）
+│   │   │   ├── gitlab/      # GitLab 连接器（🔄 桩代码）
+│   │   │   └── wework/      # WeWork/企业微信 连接器（🔄 桩代码）
 │   │   ├── eventbus/
-│   │   │   └── rabbitmq/    # RabbitMQ publisher (✅ implemented)
-│   │   └── gateway/         # Event gateway router setup
+│   │   │   └── rabbitmq/    # RabbitMQ 发布者（✅ 已实现）
+│   │   └── gateway/         # 事件网关路由器设置
 │   │
-│   ├── skills/              # Skill interface, BaseSkill, SkillManager interface
-│   │   └── examples/        # Example skill implementation
+│   ├── skills/              # Skill 接口，BaseSkill，SkillManager 接口
+│   │   └── examples/        # 示例技能实现
 │   │
-│   └── types/               # Core domain types
+│   └── types/               # 核心领域类型
 │       ├── digital_assistant.go          # DigitalAssistant, AssistantConfig
 │       ├── digital_assistant_instance.go # DigitalAssistantInstance
-│       ├── event.go                      # Event (persisted)
-│       └── tables.go                    # DB table name constants
+│       ├── event.go                      # Event (持久存储)
+│       └── tables.go                     # 数据库表名常量
 │
-├── proto/                   # Protobuf definitions
-├── gen/                     # Generated code from protos
-├── frontend/                # Frontend application
-├── deployments/             # Docker build configs
-└── docs/                    # Documentation
+├── proto/                   # Protobuf 定义
+├── gen/                     # 来源于 protos 的生成代码
+├── frontend/                # 前端应用
+├── deployments/             # Docker 构建配置
+└── docs/                    # 文档
 ```
 
-## MINIMUM VISION PRODUCT (MVP)
+## 最小可行性产品 (MVP)
 
-The initial MVP focuses on these key components:
+初始 MVP 专注于这些关键组件：
 
-1. Event Gateway (✅ done)
-2. Event Bus / RabbitMQ (✅ done)
-3. Skill System interface (✅ done)
-4. GitHub Integration (✅ webhook + event parsing done)
-5. Skill Proxy service (✅ service skeleton done)
-6. Orchestrator (🔄 planned)
-7. Agent Engine (🔄 planned)
-8. CodeAssistantDigitalAssistant (🔄 planned)
+1. Event Gateway (✅ 已完成)
+2. Event Bus / RabbitMQ (✅ 已完成)
+3. Skill System 接口 (✅ 已完成)
+4. GitHub 集成 (✅ webhook + 事件解析已完成)
+5. Skill Proxy 服务 (✅ 服务框架已完成)
+6. Orchestrator (🔄 计划中)
+7. Agent Engine (🔄 计划中)
+8. CodeAssistantDigitalAssistant (🔄 计划中)
 
-MVP Features:
+MVP 特性：
 
-- PR automatic Review (🔄 planned)
-- PR automatic summary (🔄 planned)
-- Issue automatic reply (🔄 planned - GitHub issue_comment event supported)
-- Code explanation (🔄 planned)
+- PR 自动审查 (🔄 计划中)
+- PR 自动摘要 (🔄 计划中)
+- 问题自动回复 (🔄 计划中 - GitHub issue_comment 事件已支持)
+- 代码解释 (🔄 计划中)
 
-## Technical Stack
+## 技术栈
 
-Current and planned stack:
+当前和计划的技术栈：
 
-| Component | Technology | Status |
+| 组件 | 技术 | 状态 |
 |-----------|-----------|--------|
-| Language | Golang | ✅ Active |
-| HTTP Framework | Gin | ✅ Active |
-| CLI Framework | Cobra | ✅ Active |
-| Message Queue | RabbitMQ | ✅ Active |
-| ORM | GORM | ✅ Active (types defined) |
-| Database | Postgres | 🔄 Planned |
-| Cache | Redis | 🔄 Planned |
-| Vector Store | Qdrant | 🔄 Planned |
-| LLM | OpenAI / Claude / DeepSeek | 🔄 Planned |
+| 语言 | Golang | ✅ 活跃 |
+| HTTP 框架 | Gin | ✅ 活跃 |
+| CLI 框架 | Cobra | ✅ 活跃 |
+| 消息队列 | RabbitMQ | ✅ 活跃 |
+| ORM | GORM | ✅ 活跃 (类型已定义) |
+| 数据库 | Postgres | 🔄 计划中 |
+| 缓存 | Redis | 🔄 计划中 |
+| 向量存储 | Qdrant | 🔄 计划中 |
+| LLM | OpenAI / Claude / DeepSeek | 🔄 计划中 |
 
-## DEVELOPMENT WORKFLOW
+## 开发工作流程
 
-This section outlines the standard development workflow for contributing to the SingerOS project.
+本节概述了为 SingerOS 项目做出贡献的标准开发工作流程。
 
-### Standard Development Process
+### 标准开发流程
 
-When developing new features or fixing issues, follow these steps:
+在开发新特性或修复问题时，请遵循以下步骤：
 
-1. **Synchronize with upstream repository** to ensure you have the latest changes before starting development
-2. **Create feature branch** based on the updated main branch
-3. **Commit and push changes** to your personal forked repository
-4. **Submit pull request manually** via the GitHub web interface to the main repository
+1. **与上游仓库同步** 以确保在开始开发之前拥有最新更改
+2. **创建功能分支** 基于更新后的主分支
+3. **提交和推送更改** 到您的个人派生仓库
+4. **手动提交拉取请求** 通过 GitHub 网页界面到主仓库
 
-### Detailed Steps
+### 详细步骤
 
-#### 1. Synchronize with Upstream Repository
+#### 1. 与上游仓库同步
 
-First, make sure your fork is up-to-date with the upstream repository:
+首先，确保您的派生仓库与上游仓库保持同步：
 
 ```bash
-# Add upstream repository if not already added
+# 如果尚未添加，添加上游仓库
 git remote add upstream https://github.com/insmtx/SingerOS.git
 
-# Fetch the latest changes from upstream
+# 获取上游的最新更改
 git fetch upstream
 
-# Switch to the main branch
+# 切换到主分支
 git checkout main
 
-# Merge the upstream changes
+# 合并上游更改
 git merge upstream/main
 
-# Push the updated main branch to your fork
+# 推送更新后的主分支到您的派生
 git push origin main
 ```
 
-#### 2. Create Feature Branch
+#### 2. 创建功能分支
 
-Create a new branch based on the updated main branch for your development:
+基于更新后的主分支创建一个新分支用于开发：
 
 ```bash
-# Create and switch to a new feature branch
+# 创建并切换到新的功能分支
 git checkout -b feature/descriptive-feature-name
 
-# Or for bug fixes
+# 或对于 bug 修复
 git checkout -b fix/descriptive-fix-description
 
-# For more specific features or enhancements
+# 对于更具体的功能或增强
 git checkout -b feat/scope-descriptive-name
 ```
 
-Follow the naming convention for branches:
-- `feature/` or `feat/` for major features
-- `fix/` for bug fixes
-- `enhancement/` for improvements to existing functionality
-- `docs/` for documentation changes
-- `refactor/` for code restructuring without functionality changes
+遵循分支命名约定：
+- `feature/` 或 `feat/` 用于主要功能
+- `fix/` 用于 bug 修复
+- `enhancement/` 用于现有功能的改进
+- `docs/` 用于文档更改
+- `refactor/` 用于不改变功能的代码重构
 
-#### 3. Develop and Commit Changes
+#### 3. 开发并提交更改
 
-After completing your development work, commit your changes to your personal repository:
+完成开发工作后，将更改提交到您的个人仓库：
 
 ```bash
-# Stage your changes
+# 添加您的更改
 git add .
 
-# Commit with a properly formatted message following conventional commits:
+# 按照约定式提交格式提交带有正确格式的消息：
 git commit -m "type(scope): concise description of changes"
 
-# Push your feature branch to your personal fork
+# 将您的功能分支推送到您个人的派生
 git push origin feature/descriptive-feature-name
 ```
 
-Commit message format follows the conventional commits specification:
+提交消息格式遵循约定式提交规范：
 ```
 type(scope): description
 
@@ -366,24 +366,24 @@ type(scope): description
 [optional footer(s)]
 ```
 
-Common types:
-- `feat`: New feature
-- `fix`: Bug fix
-- `docs`: Documentation only changes
-- `style`: Changes that do not affect meaning (white-space, formatting, missing semi-colons, etc.)
-- `refactor`: Code change that neither fixes a bug nor adds a feature
-- `test`: Adding missing tests or correcting existing tests
-- `chore`: Other changes that don't modify src or test files
+常见类型：
+- `feat`: 新功能
+- `fix`: 修复错误
+- `docs`: 仅文档更改
+- `style`: 不影响意义的更改（空白、格式、缺少分号等）
+- `refactor`: 既不修复 bug 也不添加功能的代码更改
+- `test`: 添加缺失测试或修正现有测试
+- `chore`: 不修改源代码或测试文件的其他更改
 
-#### 4. Submit Pull Request
+#### 4. 提交拉取请求
 
-Once your changes are pushed to your personal repository:
+当您的更改推送到您的个人仓库后：
 
-1. Navigate to the original SingerOS repository on GitHub
-2. Click on "Pull Requests" tab
-3. Click on "New Pull Request"
-4. Select "Compare across forks"
-5. Choose your fork and feature branch as the compared branch
-6. Verify the changes shown in the diff
-7. Fill in the PR title and description following the project's template
-8. Submit the pull request
+1. 导航到原始 SingerOS 仓库的 GitHub 页面
+2. 单击 "Pull Requests" 标签
+3. 单击 "New Pull Request"
+4. 选择 "Compare across forks"
+5. 选择您的派生和功能分支作为比较分支
+6. 验证差异中显示的更改
+7. 按照项目的模板填写 PR 标题和描述
+8. 提交拉取请求
