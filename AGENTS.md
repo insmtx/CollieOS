@@ -1,4 +1,4 @@
-# AGENT DEVELOPMENT GUIDELINES FOR SINGEROS
+# SingerOS Agent Development Guidelines
 
 This document contains essential information for AI agents working with the SingerOS codebase.
 
@@ -123,7 +123,7 @@ import (
 - Follow Go's idiomatic patterns and standard practices
 - When implementing, consider how components fit into the broader architecture described in ARCHITECTURE.md
 
-## CORE COMPONENTS AND ARCHITECTURE
+## Core Components and Architecture
 
 Based on the AI OS architecture described in ARCHITECTURE.md, the SingerOS platform consists of the following primary components:
 
@@ -137,7 +137,7 @@ Based on the AI OS architecture described in ARCHITECTURE.md, the SingerOS platf
 8. **Model Router** - Multi-provider LLM routing (🔄 planned)
 9. **Memory System** - Short-term and long-term memory (🔄 planned)
 
-## SKILL SYSTEM DEFINITION
+## Skill System Definition
 
 Skills represent core building blocks in SingerOS. The `Skill` interface is defined in `backend/skills/skill.go`:
 
@@ -196,7 +196,7 @@ type Connector interface {
 
 Events are normalized into the `interaction.Event` type and published to the Event Bus (RabbitMQ).
 
-## PERMISSIONS AND SECURITY
+## Permissions and Security
 
 Granular permissions control at multiple levels:
 
@@ -268,7 +268,7 @@ MVP Features:
 - Issue automatic reply (🔄 planned - GitHub issue_comment event supported)
 - Code explanation (🔄 planned)
 
-## TECHNICAL STACK
+## Technical Stack
 
 Current and planned stack:
 
@@ -283,3 +283,107 @@ Current and planned stack:
 | Cache | Redis | 🔄 Planned |
 | Vector Store | Qdrant | 🔄 Planned |
 | LLM | OpenAI / Claude / DeepSeek | 🔄 Planned |
+
+## DEVELOPMENT WORKFLOW
+
+This section outlines the standard development workflow for contributing to the SingerOS project.
+
+### Standard Development Process
+
+When developing new features or fixing issues, follow these steps:
+
+1. **Synchronize with upstream repository** to ensure you have the latest changes before starting development
+2. **Create feature branch** based on the updated main branch
+3. **Commit and push changes** to your personal forked repository
+4. **Submit pull request manually** via the GitHub web interface to the main repository
+
+### Detailed Steps
+
+#### 1. Synchronize with Upstream Repository
+
+First, make sure your fork is up-to-date with the upstream repository:
+
+```bash
+# Add upstream repository if not already added
+git remote add upstream https://github.com/insmtx/SingerOS.git
+
+# Fetch the latest changes from upstream
+git fetch upstream
+
+# Switch to the main branch
+git checkout main
+
+# Merge the upstream changes
+git merge upstream/main
+
+# Push the updated main branch to your fork
+git push origin main
+```
+
+#### 2. Create Feature Branch
+
+Create a new branch based on the updated main branch for your development:
+
+```bash
+# Create and switch to a new feature branch
+git checkout -b feature/descriptive-feature-name
+
+# Or for bug fixes
+git checkout -b fix/descriptive-fix-description
+
+# For more specific features or enhancements
+git checkout -b feat/scope-descriptive-name
+```
+
+Follow the naming convention for branches:
+- `feature/` or `feat/` for major features
+- `fix/` for bug fixes
+- `enhancement/` for improvements to existing functionality
+- `docs/` for documentation changes
+- `refactor/` for code restructuring without functionality changes
+
+#### 3. Develop and Commit Changes
+
+After completing your development work, commit your changes to your personal repository:
+
+```bash
+# Stage your changes
+git add .
+
+# Commit with a properly formatted message following conventional commits:
+git commit -m "type(scope): concise description of changes"
+
+# Push your feature branch to your personal fork
+git push origin feature/descriptive-feature-name
+```
+
+Commit message format follows the conventional commits specification:
+```
+type(scope): description
+
+[optional body]
+
+[optional footer(s)]
+```
+
+Common types:
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation only changes
+- `style`: Changes that do not affect meaning (white-space, formatting, missing semi-colons, etc.)
+- `refactor`: Code change that neither fixes a bug nor adds a feature
+- `test`: Adding missing tests or correcting existing tests
+- `chore`: Other changes that don't modify src or test files
+
+#### 4. Submit Pull Request
+
+Once your changes are pushed to your personal repository:
+
+1. Navigate to the original SingerOS repository on GitHub
+2. Click on "Pull Requests" tab
+3. Click on "New Pull Request"
+4. Select "Compare across forks"
+5. Choose your fork and feature branch as the compared branch
+6. Verify the changes shown in the diff
+7. Fill in the PR title and description following the project's template
+8. Submit the pull request
