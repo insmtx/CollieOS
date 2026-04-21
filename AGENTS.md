@@ -349,7 +349,7 @@ git checkout -b feat/scope-descriptive-name
 ```
 
 遵循分支命名约定：
-- `feature/` 或 `feat/` 用于主要功能
+- `feat/` 用于主要功能
 - `fix/` 用于 bug 修复
 - `enhancement/` 用于现有功能的改进
 - `docs/` 用于文档更改
