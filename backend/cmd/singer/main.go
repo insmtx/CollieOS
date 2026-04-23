@@ -19,13 +19,12 @@ import (
 	authgithub "github.com/insmtx/SingerOS/backend/auth/providers/github"
 	"github.com/insmtx/SingerOS/backend/config"
 	"github.com/insmtx/SingerOS/backend/database"
-	"github.com/insmtx/SingerOS/backend/internal/service/middleware"
-	"github.com/insmtx/SingerOS/backend/internal/infra/mq/rabbitmq"
-	"github.com/insmtx/SingerOS/backend/internal/connectors"
+	agentruntime "github.com/insmtx/SingerOS/backend/internal/agent"
 	"github.com/insmtx/SingerOS/backend/internal/eventengine"
 	"github.com/insmtx/SingerOS/backend/internal/execution"
+	"github.com/insmtx/SingerOS/backend/internal/infra/mq/rabbitmq"
+	trace "github.com/insmtx/SingerOS/backend/internal/service/middleware"
 	githubprovider "github.com/insmtx/SingerOS/backend/providers/github"
-	agentruntime "github.com/insmtx/SingerOS/backend/internal/agent"
 	bundledskills "github.com/insmtx/SingerOS/backend/skills/bundled"
 	skillcatalog "github.com/insmtx/SingerOS/backend/skills/catalog"
 	"github.com/insmtx/SingerOS/backend/toolruntime"
@@ -102,13 +101,13 @@ var rootCmd = &cobra.Command{
 		r := gin.New()
 		{
 			r.Use(middleware.CORS())
-			r.Use(middleware.RequestID())
-			r.Use(middleware.Logger())
+			r.Use(trace.CustomerHeader())
+			r.Use(trace.Logger(".Ping", "metrics"))
 			r.Use(middleware.Recovery())
 		}
 
 		// Set up gateway with connectors
-		connectors.SetupRouter(r, *cfg, publisher, db, authService)
+		SetupRouter(r, *cfg, publisher, db, authService)
 
 		// Create HTTP server
 		srv := &http.Server{
@@ -255,7 +254,7 @@ func buildTooling(cfg *config.Config, authService *auth.Service) (*tools.Registr
 	return registry, toolruntime.New(registry, githubFactory), nil
 }
 
-func buildRuntimeRunner(ctx context.Context, cfg *config.Config, runtimeConfig agentruntime.Config) (agentruntime.Runner, error) {
+func buildRuntimeRunner(ctx context.Context, cfg *config.Config, runtimeConfig agentruntime.Config) (agentruntime.Runtime, error) {
 	if cfg == nil || cfg.LLM == nil || cfg.LLM.APIKey == "" {
 		return nil, fmt.Errorf("llm config is required")
 	}
