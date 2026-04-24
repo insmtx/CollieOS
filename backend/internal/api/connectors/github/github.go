@@ -16,6 +16,7 @@ import (
 
 	auth "github.com/insmtx/SingerOS/backend/internal/api/auth"
 	"github.com/insmtx/SingerOS/backend/config"
+	"github.com/insmtx/SingerOS/backend/internal/api/connectors"
 	eventbus "github.com/insmtx/SingerOS/backend/internal/infra/mq"
 	"github.com/insmtx/SingerOS/backend/internal/api/dto"
 	"github.com/insmtx/SingerOS/backend/types"
@@ -24,6 +25,9 @@ import (
 const (
 	githubAPIBaseURL = "https://api.github.com"
 )
+
+// 确保 Connector 实现了 connectors.Connector 接口
+var _ connectors.Connector = (*Connector)(nil)
 
 // Connector implements the GitHub connector interface.
 type Connector struct {

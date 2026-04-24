@@ -7,9 +7,13 @@ package gitlab
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/insmtx/SingerOS/backend/config"
+	"github.com/insmtx/SingerOS/backend/internal/api/connectors"
 	eventbus "github.com/insmtx/SingerOS/backend/internal/infra/mq"
 	"github.com/ygpkg/yg-go/logs"
 )
+
+// 确保 GitlabConnector 实现了 connectors.Connector 接口
+var _ connectors.Connector = (*GitlabConnector)(nil)
 
 // GitlabConnector 是 GitLab 平台的连接器实现
 type GitlabConnector struct {

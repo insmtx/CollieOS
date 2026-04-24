@@ -10,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"github.com/insmtx/SingerOS/backend/internal/api/connectors"
 	eventbus "github.com/insmtx/SingerOS/backend/internal/infra/mq"
 	"github.com/ygpkg/yg-go/logs"
 )
@@ -19,6 +20,9 @@ var upgrader = websocket.Upgrader{
 		return true
 	},
 }
+
+// 确保 Connector 实现了 connectors.Connector 接口
+var _ connectors.Connector = (*Connector)(nil)
 
 // Connection represents a single WebSocket connection
 type Connection struct {

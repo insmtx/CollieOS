@@ -8,6 +8,10 @@ type clientResolver interface {
 	Resolve(ctx context.Context, factory *ClientFactory, req *ResolveClientRequest) (*ResolvedClient, bool, error)
 }
 
+// 确保实现 clientResolver 接口
+var _ clientResolver = (*installationClientResolver)(nil)
+var _ clientResolver = (*oauthClientResolver)(nil)
+
 type installationClientResolver struct{}
 
 func (r *installationClientResolver) Resolve(ctx context.Context, factory *ClientFactory, req *ResolveClientRequest) (*ResolvedClient, bool, error) {

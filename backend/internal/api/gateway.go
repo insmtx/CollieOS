@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	auth "github.com/insmtx/SingerOS/backend/internal/api/auth"
 	"github.com/insmtx/SingerOS/backend/config"
+	"github.com/insmtx/SingerOS/backend/internal/api/connectors"
 	"github.com/insmtx/SingerOS/backend/internal/api/connectors/github"
 	"github.com/insmtx/SingerOS/backend/internal/api/connectors/gitlab"
 	"github.com/insmtx/SingerOS/backend/internal/infra/websocket"
@@ -21,7 +22,7 @@ import (
 // 根据配置初始化并注册 GitHub、GitLab 等渠道连接器，
 // 同时设置客户端 WebSocket 连接器，并将所有连接器的路由注册到 HTTP 服务器。
 func SetupRouter(r gin.IRouter, cfg config.Config, publisher eventbus.Publisher, db *gorm.DB, authService *auth.Service) {
-	router := NewRouter()
+	router := connectors.NewRouter()
 
 	if cfg.Github != nil {
 		logs.Info("Setting up GitHub connector")
