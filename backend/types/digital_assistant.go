@@ -90,7 +90,7 @@ type SkillRef struct {
 	// 技能引用 - 版本号，使用技能的指定版本
 	Version string `json:"version"`
 	// 技能引用 - 自定义配置，针对特定技能的配置选项
-	Config map[string]any `json:"config"`
+	// TODO
 }
 
 // ChannelRef 渠道引用定义了数字助手所使用的交互渠道信息
@@ -98,7 +98,7 @@ type ChannelRef struct {
 	// 渠道引用 - 类型，渠道类型标识 (如：GitHub, GitLab, WeChat等)
 	Type string `json:"type"` // 建议使用 types.ChannelType 定义的常量值
 	// 渠道引用 - 配置，渠道的自定义配置选项
-	Config map[string]any `json:"config"`
+	// TODO
 }
 
 // KnowledgeRef 知识库引用定义了数字助手可访问的知识资源信息
@@ -116,7 +116,7 @@ type RuntimeConfig struct {
 	// 运行时配置 - 类型，运行时环境类型标识 (如：docker, process等)
 	Type string `json:"type"` // 建议使用 types.RuntimeType 定义的常量值
 	// 运行时配置 - 配置，运行时的自定义配置选项
-	Config map[string]any `json:"config"`
+	// TODO
 }
 
 // LLMConfig LLM配置定义了大型语言模型的类型和参数
@@ -124,7 +124,7 @@ type LLMConfig struct {
 	// LLM配置 - 类型，LLM提供商类型标识 (如：openai, claude, deepseek等)
 	Type string `json:"type"` // 建议使用 types.LLMProviderType 定义的常量值
 	// LLM配置 - 配置，LLM相关自定义配置选项
-	Config map[string]any `json:"config"`
+	// TODO
 }
 
 // MemoryConfig 记忆配置定义了记忆功能的类型和参数
@@ -132,7 +132,7 @@ type MemoryConfig struct {
 	// 记忆配置 - 类型，记忆存储类型标识 (如：redis, postgres等)
 	Type string `json:"type"` // 建议使用 types.MemoryType 定义的常量值
 	// 记忆配置 - 配置，记忆相关的自定义配置选项
-	Config map[string]any `json:"config"`
+	// TODO
 }
 
 // PolicyConfig 策略配置定义了权限与安全策略的功能类型和参数
@@ -140,5 +140,5 @@ type PolicyConfig struct {
 	// 策略配置 - 类型，策略类型标识
 	Type string `json:"type"`
 	// 策略配置 - 配置，策略的自定义配置选项
-	Config map[string]any `json:"config"`
+	// TODO
 }
