@@ -1,0 +1,258 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "contact": {}
+    },
+    "paths": {
+        "/CreateDigitalAssistant": {
+            "post": {
+                "description": "创建一个新的数字助手实例",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "DigitalAssistant"
+                ],
+                "summary": "创建数字助手",
+                "parameters": [
+                    {
+                        "description": "创建数字助手请求",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_insmtx_SingerOS_backend_internal_api_contract.CreateDigitalAssistantRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功响应",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_insmtx_SingerOS_backend_internal_api_dto.CreateDigitalAssistantResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_insmtx_SingerOS_backend_internal_api_dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "内部服务器错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_insmtx_SingerOS_backend_internal_api_dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "github_com_insmtx_SingerOS_backend_internal_api_contract.AssistantConfig": {
+            "type": "object",
+            "properties": {
+                "channels": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_insmtx_SingerOS_backend_internal_api_contract.ChannelRef"
+                    }
+                },
+                "knowledge": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_insmtx_SingerOS_backend_internal_api_contract.KnowledgeRef"
+                    }
+                },
+                "llm_config": {
+                    "$ref": "#/definitions/github_com_insmtx_SingerOS_backend_internal_api_contract.LLMConfig"
+                },
+                "memory_config": {
+                    "$ref": "#/definitions/github_com_insmtx_SingerOS_backend_internal_api_contract.MemoryConfig"
+                },
+                "policies_config": {
+                    "$ref": "#/definitions/github_com_insmtx_SingerOS_backend_internal_api_contract.PolicyConfig"
+                },
+                "runtime_config": {
+                    "$ref": "#/definitions/github_com_insmtx_SingerOS_backend_internal_api_contract.RuntimeConfig"
+                },
+                "skills": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_insmtx_SingerOS_backend_internal_api_contract.SkillRef"
+                    }
+                }
+            }
+        },
+        "github_com_insmtx_SingerOS_backend_internal_api_contract.ChannelRef": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_insmtx_SingerOS_backend_internal_api_contract.CreateDigitalAssistantRequest": {
+            "type": "object",
+            "required": [
+                "code",
+                "config",
+                "name",
+                "org_id",
+                "owner_id"
+            ],
+            "properties": {
+                "avatar": {
+                    "type": "string"
+                },
+                "code": {
+                    "type": "string"
+                },
+                "config": {
+                    "$ref": "#/definitions/github_com_insmtx_SingerOS_backend_internal_api_contract.AssistantConfig"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "org_id": {
+                    "type": "integer"
+                },
+                "owner_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_insmtx_SingerOS_backend_internal_api_contract.DigitalAssistant": {
+            "type": "object",
+            "properties": {
+                "avatar": {
+                    "type": "string"
+                },
+                "code": {
+                    "type": "string"
+                },
+                "config": {
+                    "$ref": "#/definitions/github_com_insmtx_SingerOS_backend_internal_api_contract.AssistantConfig"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "org_id": {
+                    "type": "integer"
+                },
+                "owner_id": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_insmtx_SingerOS_backend_internal_api_contract.KnowledgeRef": {
+            "type": "object",
+            "properties": {
+                "dataset_id": {
+                    "type": "string"
+                },
+                "repo": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_insmtx_SingerOS_backend_internal_api_contract.LLMConfig": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_insmtx_SingerOS_backend_internal_api_contract.MemoryConfig": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_insmtx_SingerOS_backend_internal_api_contract.PolicyConfig": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_insmtx_SingerOS_backend_internal_api_contract.RuntimeConfig": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_insmtx_SingerOS_backend_internal_api_contract.SkillRef": {
+            "type": "object",
+            "properties": {
+                "skill_code": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_insmtx_SingerOS_backend_internal_api_dto.CreateDigitalAssistantResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/github_com_insmtx_SingerOS_backend_internal_api_contract.DigitalAssistant"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_insmtx_SingerOS_backend_internal_api_dto.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "details": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}

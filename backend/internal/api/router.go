@@ -17,6 +17,10 @@ import (
 	"github.com/insmtx/SingerOS/backend/internal/infra/websocket"
 	"github.com/ygpkg/yg-go/logs"
 	"gorm.io/gorm"
+
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+	_ "github.com/insmtx/SingerOS/docs/swagger" // Swagger 文档生成的导入
 )
 
 // SetupRouter 设置事件网关的路由，注册所有连接器
@@ -47,6 +51,9 @@ func SetupRouter(r gin.IRouter, cfg config.Config, publisher eventbus.Publisher,
 
 	handler.RegisterDigitalAssistantRoutes(r, digitalAssistantService)
 	logs.Info("Digital assistant routes registered successfully")
+
+	// Swagger UI 路由
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 }
 
 // initDigitalAssistantService 初始化DigitalAssistant服务
