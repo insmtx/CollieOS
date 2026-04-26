@@ -11,10 +11,12 @@ import (
 	"github.com/insmtx/SingerOS/backend/internal/api/connectors/github"
 	"github.com/insmtx/SingerOS/backend/internal/api/connectors/gitlab"
 	"github.com/insmtx/SingerOS/backend/internal/api/handler"
-	"github.com/insmtx/SingerOS/backend/internal/service"
+	"github.com/insmtx/SingerOS/backend/internal/api/middleware"
 	eventbus "github.com/insmtx/SingerOS/backend/internal/infra/mq"
 	githubprovider "github.com/insmtx/SingerOS/backend/internal/infra/providers/github"
 	"github.com/insmtx/SingerOS/backend/internal/infra/websocket"
+	"github.com/insmtx/SingerOS/backend/internal/service"
+	ygmiddleware "github.com/ygpkg/yg-go/apis/runtime/middleware"
 	"github.com/ygpkg/yg-go/logs"
 	"gorm.io/gorm"
 
@@ -27,7 +29,14 @@ import (
 //
 // 根据配置初始化并注册 GitHub、GitLab 等渠道连接器，
 // 同时设置客户端 WebSocket 连接器，并将所有连接器的路由注册到 HTTP 服务器。
-func SetupRouter(r gin.IRouter, cfg config.Config, publisher eventbus.Publisher, db *gorm.DB) {
+func SetupRouter(cfg config.Config, publisher eventbus.Publisher, db *gorm.DB) *gin.Engine {
+	r := gin.New()
+	{
+		r.Use(ygmiddleware.CORS())
+		r.Use(middleware.CallerMiddleware())
+		r.Use(middleware.Logger(".Ping", "metrics"))
+		r.Use(ygmiddleware.Recovery())
+	}
 	v1 := r.Group("/v1")
 
 	if cfg.Github != nil {
@@ -56,6 +65,7 @@ func SetupRouter(r gin.IRouter, cfg config.Config, publisher eventbus.Publisher,
 
 	// Swagger UI 路由
 	v1.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	return r
 }
 
 // initThirdPartyAuthService 初始化第三方平台授权服务并注册 provider

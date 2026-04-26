@@ -7,26 +7,43 @@ import (
 
 	"gorm.io/gorm"
 
+	"github.com/insmtx/SingerOS/backend/internal/api/auth"
 	"github.com/insmtx/SingerOS/backend/internal/api/contract"
 	"github.com/insmtx/SingerOS/backend/internal/infra/db"
 	"github.com/insmtx/SingerOS/backend/types"
 )
 
-// digitalAssistantService DigitalAssistant服务实现（未导出）
 type digitalAssistantService struct {
 	db *gorm.DB
 }
 
-// NewDigitalAssistantService 创建DigitalAssistant服务实例
 func NewDigitalAssistantService(db *gorm.DB) contract.DigitalAssistantService {
 	return &digitalAssistantService{
 		db: db,
 	}
 }
 
-// CreateDigitalAssistant 创建数字助手
+func getOrgIDFromContext(ctx context.Context) (uint, error) {
+	caller, _ := auth.FromContext(ctx)
+	if caller == nil || caller.OrgID == 0 {
+		return 0, errors.New("user not authenticated or org not set")
+	}
+	return caller.OrgID, nil
+}
+
+func verifyOrgPermission(daOrgID, orgID uint) error {
+	if daOrgID != orgID {
+		return errors.New("permission denied")
+	}
+	return nil
+}
+
 func (s *digitalAssistantService) CreateDigitalAssistant(ctx context.Context, req *contract.CreateDigitalAssistantRequest) (*contract.DigitalAssistant, error) {
-	// 验证必填字段
+	orgID, err := getOrgIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	if req.Code == "" {
 		return nil, errors.New("code is required")
 	}
@@ -34,7 +51,6 @@ func (s *digitalAssistantService) CreateDigitalAssistant(ctx context.Context, re
 		return nil, errors.New("name is required")
 	}
 
-	// 检查code是否已存在
 	exists, err := db.DigitalAssistantCodeExists(ctx, s.db, req.Code, 0)
 	if err != nil {
 		return nil, err
@@ -43,12 +59,11 @@ func (s *digitalAssistantService) CreateDigitalAssistant(ctx context.Context, re
 		return nil, errors.New("digital assistant with this code already exists")
 	}
 
-	// 构建数据库实体
-	now := time.Now()
+	caller, _ := auth.FromContext(ctx)
 	da := &types.DigitalAssistant{
 		Code:        req.Code,
-		OrgID:       req.OrgID,
-		OwnerID:     req.OwnerID,
+		OrgID:       orgID,
+		OwnerID:     caller.Uin,
 		Name:        req.Name,
 		Description: req.Description,
 		Avatar:      req.Avatar,
@@ -63,24 +78,23 @@ func (s *digitalAssistantService) CreateDigitalAssistant(ctx context.Context, re
 			Memory:    types.MemoryConfig{Type: req.Config.Memory.Type},
 			Policies:  types.PolicyConfig{Type: req.Config.Policies.Type},
 		},
+		
+		
 	}
 
-	// 设置时间戳
-	da.CreatedAt = now
-	da.UpdatedAt = now
+	if err := db.CreateDigitalAssistant(ctx, s.db, da); err != nil {
+		return nil, err
+	}
 
-	// 保存到数据库
-	err = db.CreateDigitalAssistant(ctx, s.db, da)
+	return convertToContractDigitalAssistant(da), nil
+}
+
+func (s *digitalAssistantService) GetDigitalAssistantByID(ctx context.Context, id uint) (*contract.DigitalAssistantDetail, error) {
+	orgID, err := getOrgIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// 转换为响应结构
-	return convertToContractDigitalAssistant(da), nil
-}
-
-// GetDigitalAssistantByID 根据ID获取数字助手详情（需验证同组织权限）
-func (s *digitalAssistantService) GetDigitalAssistantByID(ctx context.Context, orgID uint, id uint) (*contract.DigitalAssistantDetail, error) {
 	da, err := db.GetDigitalAssistantByID(ctx, s.db, id)
 	if err != nil {
 		return nil, err
@@ -89,9 +103,8 @@ func (s *digitalAssistantService) GetDigitalAssistantByID(ctx context.Context, o
 		return nil, errors.New("digital assistant not found")
 	}
 
-	// 验证组织权限
-	if da.OrgID != orgID {
-		return nil, errors.New("permission denied: digital assistant belongs to different organization")
+	if err := verifyOrgPermission(da.OrgID, orgID); err != nil {
+		return nil, err
 	}
 
 	return &contract.DigitalAssistantDetail{
@@ -99,8 +112,12 @@ func (s *digitalAssistantService) GetDigitalAssistantByID(ctx context.Context, o
 	}, nil
 }
 
-// GetDigitalAssistantByCode 根据Code获取数字助手详情（需验证同组织权限）
-func (s *digitalAssistantService) GetDigitalAssistantByCode(ctx context.Context, orgID uint, code string) (*contract.DigitalAssistantDetail, error) {
+func (s *digitalAssistantService) GetDigitalAssistantByCode(ctx context.Context, code string) (*contract.DigitalAssistantDetail, error) {
+	orgID, err := getOrgIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	da, err := db.GetDigitalAssistantByCode(ctx, s.db, code)
 	if err != nil {
 		return nil, err
@@ -109,9 +126,8 @@ func (s *digitalAssistantService) GetDigitalAssistantByCode(ctx context.Context,
 		return nil, errors.New("digital assistant not found")
 	}
 
-	// 验证组织权限
-	if da.OrgID != orgID {
-		return nil, errors.New("permission denied: digital assistant belongs to different organization")
+	if err := verifyOrgPermission(da.OrgID, orgID); err != nil {
+		return nil, err
 	}
 
 	return &contract.DigitalAssistantDetail{
@@ -119,40 +135,159 @@ func (s *digitalAssistantService) GetDigitalAssistantByCode(ctx context.Context,
 	}, nil
 }
 
-// UpdateDigitalAssistant 更新数字助手
 func (s *digitalAssistantService) UpdateDigitalAssistant(ctx context.Context, id uint, req *contract.UpdateDigitalAssistantRequest) (*contract.DigitalAssistant, error) {
-	// TODO: 实现更新逻辑
-	return nil, nil
+	orgID, err := getOrgIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	da, err := db.GetDigitalAssistantByID(ctx, s.db, id)
+	if err != nil {
+		return nil, err
+	}
+	if da == nil {
+		return nil, errors.New("digital assistant not found")
+	}
+
+	if err := verifyOrgPermission(da.OrgID, orgID); err != nil {
+		return nil, err
+	}
+
+	if req.Name != "" {
+		da.Name = req.Name
+	}
+	if req.Description != "" {
+		da.Description = req.Description
+	}
+	if req.Avatar != "" {
+		da.Avatar = req.Avatar
+	}
+	if req.Config != nil {
+		da.Config = types.AssistantConfig{
+			Runtime:   types.RuntimeConfig{Type: req.Config.Runtime.Type},
+			LLM:       types.LLMConfig{Type: req.Config.LLM.Type},
+			Skills:    convertSkillRefs(req.Config.Skills),
+			Channels:  convertChannelRefs(req.Config.Channels),
+			Knowledge: convertKnowledgeRefs(req.Config.Knowledge),
+			Memory:    types.MemoryConfig{Type: req.Config.Memory.Type},
+			Policies:  types.PolicyConfig{Type: req.Config.Policies.Type},
+		}
+	}
+	da.UpdatedAt = time.Now()
+
+	if err := db.UpdateDigitalAssistant(ctx, s.db, da); err != nil {
+		return nil, err
+	}
+
+	return convertToContractDigitalAssistant(da), nil
 }
 
-// DeleteDigitalAssistant 删除数字助手
 func (s *digitalAssistantService) DeleteDigitalAssistant(ctx context.Context, id uint) error {
-	// TODO: 实现删除逻辑
-	return nil
+	orgID, err := getOrgIDFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	da, err := db.GetDigitalAssistantByID(ctx, s.db, id)
+	if err != nil {
+		return err
+	}
+	if da == nil {
+		return errors.New("digital assistant not found")
+	}
+
+	if err := verifyOrgPermission(da.OrgID, orgID); err != nil {
+		return err
+	}
+
+	return db.DeleteDigitalAssistant(ctx, s.db, id)
 }
 
-// ListDigitalAssistant 查询数字助手列表
 func (s *digitalAssistantService) ListDigitalAssistant(ctx context.Context, req *contract.ListDigitalAssistantRequest) (*contract.DigitalAssistantList, error) {
-	// TODO: 实现列表查询逻辑
-	return nil, nil
+	orgID, err := getOrgIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	entities, total, err := db.ListDigitalAssistant(ctx, s.db, &orgID, nil, req.Status, req.Keyword, req.Page, req.PerPage)
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]contract.DigitalAssistant, 0, len(entities))
+	for _, entity := range entities {
+		items = append(items, *convertToContractDigitalAssistant(entity))
+	}
+
+	return &contract.DigitalAssistantList{
+		Total: total,
+		Page:  req.Page,
+		Items: items,
+	}, nil
 }
 
-// UpdateDigitalAssistantConfig 更新数字助手配置
 func (s *digitalAssistantService) UpdateDigitalAssistantConfig(ctx context.Context, id uint, req *contract.UpdateDigitalAssistantConfigRequest) (*contract.DigitalAssistant, error) {
-	// TODO: 实现配置更新逻辑
-	return nil, nil
+	orgID, err := getOrgIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	da, err := db.GetDigitalAssistantByID(ctx, s.db, id)
+	if err != nil {
+		return nil, err
+	}
+	if da == nil {
+		return nil, errors.New("digital assistant not found")
+	}
+
+	if err := verifyOrgPermission(da.OrgID, orgID); err != nil {
+		return nil, err
+	}
+
+	da.Config = types.AssistantConfig{
+		Runtime:   types.RuntimeConfig{Type: req.Config.Runtime.Type},
+		LLM:       types.LLMConfig{Type: req.Config.LLM.Type},
+		Skills:    convertSkillRefs(req.Config.Skills),
+		Channels:  convertChannelRefs(req.Config.Channels),
+		Knowledge: convertKnowledgeRefs(req.Config.Knowledge),
+		Memory:    types.MemoryConfig{Type: req.Config.Memory.Type},
+		Policies:  types.PolicyConfig{Type: req.Config.Policies.Type},
+	}
+	da.UpdatedAt = time.Now()
+
+	if err := db.UpdateDigitalAssistant(ctx, s.db, da); err != nil {
+		return nil, err
+	}
+
+	return convertToContractDigitalAssistant(da), nil
 }
 
-// UpdateDigitalAssistantStatus 更新数字助手状态
 func (s *digitalAssistantService) UpdateDigitalAssistantStatus(ctx context.Context, id uint, req *contract.UpdateDigitalAssistantStatusRequest) error {
-	// TODO: 实现状态更新逻辑
-	return nil
+	orgID, err := getOrgIDFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	da, err := db.GetDigitalAssistantByID(ctx, s.db, id)
+	if err != nil {
+		return err
+	}
+	if da == nil {
+		return errors.New("digital assistant not found")
+	}
+
+	if err := verifyOrgPermission(da.OrgID, orgID); err != nil {
+		return err
+	}
+
+	da.Status = req.Status
+	da.UpdatedAt = time.Now()
+
+	return db.UpdateDigitalAssistant(ctx, s.db, da)
 }
 
-// 确保 digitalAssistantService 实现了 contract.DigitalAssistantService 接口
 var _ contract.DigitalAssistantService = (*digitalAssistantService)(nil)
 
-// convertSkillRefs 转换技能引用
 func convertSkillRefs(reqRefs []contract.SkillRef) []types.SkillRef {
 	result := make([]types.SkillRef, 0, len(reqRefs))
 	for _, ref := range reqRefs {
@@ -164,7 +299,6 @@ func convertSkillRefs(reqRefs []contract.SkillRef) []types.SkillRef {
 	return result
 }
 
-// convertChannelRefs 转换渠道引用
 func convertChannelRefs(reqRefs []contract.ChannelRef) []types.ChannelRef {
 	result := make([]types.ChannelRef, 0, len(reqRefs))
 	for _, ref := range reqRefs {
@@ -175,7 +309,6 @@ func convertChannelRefs(reqRefs []contract.ChannelRef) []types.ChannelRef {
 	return result
 }
 
-// convertKnowledgeRefs 转换知识库引用
 func convertKnowledgeRefs(reqRefs []contract.KnowledgeRef) []types.KnowledgeRef {
 	result := make([]types.KnowledgeRef, 0, len(reqRefs))
 	for _, ref := range reqRefs {
@@ -188,7 +321,6 @@ func convertKnowledgeRefs(reqRefs []contract.KnowledgeRef) []types.KnowledgeRef 
 	return result
 }
 
-// convertToContractDigitalAssistant 转换为合约层DigitalAssistant
 func convertToContractDigitalAssistant(da *types.DigitalAssistant) *contract.DigitalAssistant {
 	return &contract.DigitalAssistant{
 		ID:          da.ID,
@@ -209,12 +341,11 @@ func convertToContractDigitalAssistant(da *types.DigitalAssistant) *contract.Dig
 			Memory:    contract.MemoryConfig{Type: da.Config.Memory.Type},
 			Policies:  contract.PolicyConfig{Type: da.Config.Policies.Type},
 		},
-		CreatedAt: da.CreatedAt,
-		UpdatedAt: da.UpdatedAt,
+		
+		
 	}
 }
 
-// convertSkillRefsToContract 转换技能引用到合约层
 func convertSkillRefsToContract(refs []types.SkillRef) []contract.SkillRef {
 	result := make([]contract.SkillRef, 0, len(refs))
 	for _, ref := range refs {
@@ -226,7 +357,6 @@ func convertSkillRefsToContract(refs []types.SkillRef) []contract.SkillRef {
 	return result
 }
 
-// convertChannelRefsToContract 转换渠道引用到合约层
 func convertChannelRefsToContract(refs []types.ChannelRef) []contract.ChannelRef {
 	result := make([]contract.ChannelRef, 0, len(refs))
 	for _, ref := range refs {
@@ -237,7 +367,6 @@ func convertChannelRefsToContract(refs []types.ChannelRef) []contract.ChannelRef
 	return result
 }
 
-// convertKnowledgeRefsToContract 转换知识库引用到合约层
 func convertKnowledgeRefsToContract(refs []types.KnowledgeRef) []contract.KnowledgeRef {
 	result := make([]contract.KnowledgeRef, 0, len(refs))
 	for _, ref := range refs {
