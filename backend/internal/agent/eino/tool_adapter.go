@@ -75,7 +75,7 @@ func (a *ToolAdapter) Definitions() []ToolDefinition {
 }
 
 // EinoTools returns Eino wrappers that inject runtime identity at call time.
-func (a *ToolAdapter) EinoTools(binding ToolBinding, emitter *	agentevents.Emitter) ([]einotool.BaseTool, error) {
+func (a *ToolAdapter) EinoTools(binding ToolBinding, emitter *agentevents.Emitter) ([]einotool.BaseTool, error) {
 	if a == nil || a.registry == nil {
 		return nil, nil
 	}
@@ -172,7 +172,7 @@ type invokableTool struct {
 	adapter *ToolAdapter
 	tool    tools.Tool
 	binding ToolBinding
-	emitter *	agentevents.Emitter
+	emitter *agentevents.Emitter
 }
 
 func (t *invokableTool) Info(ctx context.Context) (*einoschema.ToolInfo, error) {
@@ -185,49 +185,55 @@ func (t *invokableTool) Info(ctx context.Context) (*einoschema.ToolInfo, error) 
 
 func (t *invokableTool) InvokableRun(ctx context.Context, argumentsInJSON string, _ ...einotool.Option) (string, error) {
 	if t == nil || t.adapter == nil {
-		return "", fmt.Errorf("tool adapter is required")
+		return errorOutput("tool adapter is required", t.tool.Name()), nil
 	}
 
 	input := make(map[string]interface{})
 	if argumentsInJSON != "" {
 		if err := json.Unmarshal([]byte(argumentsInJSON), &input); err != nil {
-			return "", fmt.Errorf("unmarshal tool arguments: %w", err)
+			return errorOutput(fmt.Sprintf("unmarshal tool arguments: %v", err), t.tool.Name()), nil
 		}
 	}
 
 	startedAt := time.Now()
-	if err := t.emitToolEvent(ctx, 	agentevents.RunEventToolCallStarted, eventContentJSON(map[string]any{
+	_ = t.emitToolEvent(ctx, agentevents.RunEventToolCallStarted, eventContentJSON(map[string]any{
 		"name":      t.tool.Name(),
 		"arguments": cloneArguments(input),
-	})); err != nil {
-		return "", err
-	}
+	}))
 
 	result, err := invokeTool(ctx, t.tool, input, t.binding.ToolContext)
 	if err != nil {
-		_ = t.emitToolEvent(ctx, 	agentevents.RunEventToolCallFailed, eventContentJSON(map[string]any{
+		_ = t.emitToolEvent(ctx, agentevents.RunEventToolCallFailed, eventContentJSON(map[string]any{
 			"name":       t.tool.Name(),
 			"elapsed_ms": time.Since(startedAt).Milliseconds(),
 		}))
-		return "", err
+		return errorOutput(err.Error(), t.tool.Name()), nil
 	}
 
-	if err := t.emitToolEvent(ctx, 	agentevents.RunEventToolCallCompleted, eventContentJSON(map[string]any{
+	_ = t.emitToolEvent(ctx, agentevents.RunEventToolCallCompleted, eventContentJSON(map[string]any{
 		"name":       t.tool.Name(),
 		"result":     result.Output,
 		"elapsed_ms": time.Since(startedAt).Milliseconds(),
-	})); err != nil {
-		return "", err
-	}
+	}))
 
 	return result.Output, nil
 }
 
-func (t *invokableTool) emitToolEvent(ctx context.Context, eventType 	agentevents.RunEventType, content string) error {
+func errorOutput(detail, toolName string) string {
+	errStr, _ := tools.JSONString(map[string]interface{}{
+		"error":     true,
+		"message":   "工作运行异常",
+		"detail":    detail,
+		"tool_name": toolName,
+	})
+	return errStr
+}
+
+func (t *invokableTool) emitToolEvent(ctx context.Context, eventType agentevents.RunEventType, content string) error {
 	if t == nil || t.emitter == nil {
 		return nil
 	}
-	err := t.emitter.Emit(ctx, &	agentevents.RunEvent{
+	err := t.emitter.Emit(ctx, &agentevents.RunEvent{
 		Type:    eventType,
 		Content: content,
 	})

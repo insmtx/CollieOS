@@ -17,6 +17,23 @@ type LLMConfig struct {
 	BaseURL  string `yaml:"base_url,omitempty"` // Custom base URL
 }
 
+// CLIEnginesConfig is the configuration for external AI coding CLIs.
+type CLIEnginesConfig struct {
+	Default        string                     `yaml:"default,omitempty" json:"default,omitempty"`
+	TimeoutSeconds int                        `yaml:"timeout_seconds,omitempty" json:"timeout_seconds,omitempty"`
+	Engines        map[string]CLIEngineConfig `yaml:"engines,omitempty" json:"engines,omitempty"`
+}
+
+// CLIEngineConfig configures a single external CLI engine such as Claude Code or Codex.
+type CLIEngineConfig struct {
+	Enabled  bool              `yaml:"enabled,omitempty" json:"enabled,omitempty"`
+	Path     string            `yaml:"path,omitempty" json:"path,omitempty"`
+	Model    string            `yaml:"model,omitempty" json:"model,omitempty"`
+	BaseURL  string            `yaml:"base_url,omitempty" json:"base_url,omitempty"`
+	APIKey   string            `yaml:"api_key,omitempty" json:"api_key,omitempty"`
+	ExtraEnv map[string]string `yaml:"extra_env,omitempty" json:"extra_env,omitempty"`
+}
+
 // Config 是 SingerOS 的主配置结构，包含所有子系统的配置
 type Config struct {
 	Github   *GithubAppConfig `yaml:"github,omitempty"`   // GitHub 应用配置

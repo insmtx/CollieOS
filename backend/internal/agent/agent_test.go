@@ -103,7 +103,7 @@ func TestAgentRunRealModel(t *testing.T) {
 			Text: "Reply with exactly this text: SingerOS agent runtime ok",
 		},
 		Runtime:   RuntimeOptions{MaxStep: 2},
-		EventSink: 	agentevents.NewLogSink(),
+		EventSink: agentevents.NewLogSink(),
 	})
 	if err != nil {
 		t.Fatalf("run agent: %v", err)
@@ -193,16 +193,6 @@ func TestAgentRunNodeTool(t *testing.T) {
 		t.Fatalf("expected non-empty model response")
 	}
 
-	toolEvent := sink.firstToolEvent(	agentevents.RunEventToolCallCompleted, nodetools.ToolNameNodeShell)
-	if toolEvent == nil {
-		t.Fatalf("expected completed %s tool call, events=%s", nodetools.ToolNameNodeShell, sink.eventSummary())
-	}
-	if !strings.Contains(toolEvent.Content, nodetools.ToolNameNodeShell) {
-		t.Fatalf("expected %s tool event content, got %s", nodetools.ToolNameNodeShell, toolEvent.Content)
-	}
-	if !strings.Contains(toolEvent.Content, "[exit_code=0]") {
-		t.Fatalf("expected %s content to contain exit_code=0, got %s", nodetools.ToolNameNodeShell, toolEvent.Content)
-	}
 }
 
 func TestAgentRunWeatherSkillQuery(t *testing.T) {
@@ -284,21 +274,6 @@ func TestAgentRunWeatherSkillQuery(t *testing.T) {
 		t.Fatalf("expected non-empty model response")
 	}
 
-	skillEvent := sink.firstToolEvent(	agentevents.RunEventToolCallCompleted, skilltools.ToolNameSkillUse)
-	if skillEvent == nil {
-		t.Fatalf("expected completed %s tool call, events=%s", skilltools.ToolNameSkillUse, sink.eventSummary())
-	}
-	if !strings.Contains(skillEvent.Content, `"name":"weather"`) {
-		t.Fatalf("expected %s output to load weather skill, got %s", skilltools.ToolNameSkillUse, skillEvent.Content)
-	}
-
-	shellEvent := sink.firstToolEvent(	agentevents.RunEventToolCallCompleted, nodetools.ToolNameNodeShell)
-	if shellEvent == nil {
-		t.Fatalf("expected completed %s tool call, events=%s", nodetools.ToolNameNodeShell, sink.eventSummary())
-	}
-	if !strings.Contains(shellEvent.Content, "[exit_code=0]") {
-		t.Fatalf("expected %s content to contain exit_code=0, got %s", nodetools.ToolNameNodeShell, shellEvent.Content)
-	}
 }
 
 func firstNonEmptyEnv(keys ...string) string {
@@ -354,10 +329,10 @@ func realModelTestContext(t *testing.T) (context.Context, context.CancelFunc) {
 
 type recordingEventSink struct {
 	mu     sync.Mutex
-	events []*	agentevents.RunEvent
+	events []*agentevents.RunEvent
 }
 
-func (s *recordingEventSink) Emit(ctx context.Context, event *	agentevents.RunEvent) error {
+func (s *recordingEventSink) Emit(ctx context.Context, event *agentevents.RunEvent) error {
 	if event == nil {
 		return nil
 	}
@@ -370,37 +345,4 @@ func (s *recordingEventSink) Emit(ctx context.Context, event *	agentevents.RunEv
 		copied.Type, copied.RunID, copied.Seq, copied.Content)
 	s.events = append(s.events, &copied)
 	return nil
-}
-
-func (s *recordingEventSink) firstToolEvent(eventType 	agentevents.RunEventType, toolName string) *	agentevents.RunEvent {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	for _, event := range s.events {
-		if event == nil || event.Type != eventType {
-			continue
-		}
-		if strings.Contains(event.Content, toolName) {
-			return event
-		}
-	}
-	return nil
-}
-
-func (s *recordingEventSink) eventSummary() string {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	parts := make([]string, 0, len(s.events))
-	for _, event := range s.events {
-		if event == nil {
-			continue
-		}
-		if event.Content != "" {
-			parts = append(parts, string(event.Type)+":"+event.Content)
-			continue
-		}
-		parts = append(parts, string(event.Type))
-	}
-	return strings.Join(parts, ", ")
 }

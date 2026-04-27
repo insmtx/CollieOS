@@ -73,7 +73,7 @@ func (t *NodeShellTool) Execute(ctx context.Context, input map[string]interface{
 
 	toolCtx, err := tools.RequireToolContext(ctx)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("请先与一个已绑定工作节点的 AI 员工对话")
 	}
 	nodeInfo, err := nodeInfoForAssistant(toolCtx)
 	if err != nil {

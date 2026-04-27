@@ -58,48 +58,55 @@ func NewEmptyCatalog() *Catalog {
 	}
 }
 
-// NewCatalog creates a catalog by scanning the provided filesystem for SKILL.md files.
+// NewCatalog creates a catalog by scanning the skills/ direct subdirectories for SKILL.md files.
 func NewCatalog(skillFS fs.FS) (*Catalog, error) {
 	entries := make(map[string]*Entry)
 
-	err := fs.WalkDir(skillFS, ".", func(filePath string, d fs.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		if d.IsDir() || path.Base(filePath) != skillFileName {
-			return nil
+	// List all entries in the root (direct children only, not recursive)
+	rootEntries, err := fs.ReadDir(skillFS, ".")
+	if err != nil {
+		return nil, fmt.Errorf("read skill root directory: %w", err)
+	}
+
+	// Only process direct subdirectories
+	for _, entry := range rootEntries {
+		if !entry.IsDir() {
+			continue
 		}
 
-		raw, err := fs.ReadFile(skillFS, filePath)
+		subDir := entry.Name()
+		skillFilePath := path.Join(subDir, skillFileName)
+
+		// Check if SKILL.md exists in this subdirectory
+		_, err := fs.Stat(skillFS, skillFilePath)
 		if err != nil {
-			return fmt.Errorf("read skill file %s: %w", filePath, err)
+			// Skip directories without SKILL.md
+			continue
+		}
+
+		raw, err := fs.ReadFile(skillFS, skillFilePath)
+		if err != nil {
+			return nil, fmt.Errorf("read skill file %s: %w", skillFilePath, err)
 		}
 
 		manifest, body, err := ParseDocument(raw)
 		if err != nil {
-			return fmt.Errorf("parse skill file %s: %w", filePath, err)
+			return nil, fmt.Errorf("parse skill file %s: %w", skillFilePath, err)
 		}
 
-		skillDir := path.Dir(filePath)
-		if skillDir == "." {
-			skillDir = ""
-		}
-		manifest.Normalize(path.Base(skillDir))
+		// Use subdirectory name as default skill name
+		manifest.Normalize(subDir)
 
 		entry := &Entry{
 			Manifest: *manifest,
 			Body:     body,
-			Dir:      skillDir,
-			Path:     filePath,
+			Dir:      subDir,
+			Path:     skillFilePath,
 		}
 		if _, exists := entries[entry.Manifest.Name]; exists {
-			return fmt.Errorf("duplicate skill name %q", entry.Manifest.Name)
+			return nil, fmt.Errorf("duplicate skill name %q", entry.Manifest.Name)
 		}
 		entries[entry.Manifest.Name] = entry
-		return nil
-	})
-	if err != nil {
-		return nil, err
 	}
 
 	return &Catalog{
