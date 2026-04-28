@@ -1,33 +1,24 @@
-PROJECT := SingerOS
+PROJECT := singeros
 REGISTRY ?= registry.yygu.cn/insmtx/
 
 .PHONY: docker-build-singer docker-push docker-release docker-run
 
-docker-build-singer:
+docker-build:
 	docker build -t $(REGISTRY)$(PROJECT)-singer:latest -f deployments/build/Dockerfile.singer .
 
-docker-build-all: docker-build-singer
-
-# Targets with Docker BuildKit for enhanced cache usage
-docker-build-singer-cache:
-	DOCKER_BUILDKIT=1 docker build --build-arg BUILDKIT_INLINE_CACHE=1 -t $(REGISTRY)$(PROJECT)-singer:latest -f deployments/build/Dockerfile.singer .
-
-docker-build-cache-all: docker-build-singer-cache
-
-docker-push:
-
-docker-push-singer:
+docker-push: docker-build
 	docker push $(REGISTRY)$(PROJECT)-singer:latest
-
-docker-push-all: docker-push-singer
-
-docker-release-singer: docker-build-singer docker-push-singer
-
-docker-release-all: docker-build-all docker-push-all
 
 docker-run-singer:
 	-docker rm -f $(PROJECT)-singer-dev
 	docker run -d --name $(PROJECT)-singer-dev -p 8080:8080 $(REGISTRY)$(PROJECT)-singer:latest
+
+docker-compose-up: docker-build
+	docker tag $(REGISTRY)$(PROJECT)-singer:latest localhost/env_singer:latest
+	docker-compose -f deployments/env/docker-compose.yml up -d
+
+docker-compose-down:
+	docker-compose -f deployments/env/docker-compose.yml down
 
 install-protoc:
 	which protoc || (echo "protoc not found, please install it first" && exit 1)
