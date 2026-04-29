@@ -1,19 +1,19 @@
-// Package dm defines domain messaging contracts shared by SingerOS services.
+// Package dm 定义 SingerOS 服务之间共享的领域消息协议。
 package dm
 
 import "time"
 
-// MessageType describes the top-level domain message kind.
+// MessageType 表示领域消息的顶层类型。
 type MessageType string
 
 const (
-	// MessageTypeWorkerTask identifies a Server -> Worker task message.
+	// MessageTypeWorkerTask 表示 Server 发送给 Worker 的任务消息。
 	MessageTypeWorkerTask MessageType = "worker.task"
-	// MessageTypeStream identifies a Worker -> Server -> UI stream message.
+	// MessageTypeStream 表示 Worker 发送给 Server 并转发到 UI 的流式消息。
 	MessageTypeStream MessageType = "message.stream"
 )
 
-// TraceContext carries correlation IDs across UI, server, worker, and runtime.
+// TraceContext 承载跨 UI、Server、Worker 和 Runtime 的链路追踪标识。
 type TraceContext struct {
 	TraceID   string `json:"trace_id"`
 	RequestID string `json:"request_id,omitempty"`
@@ -22,14 +22,14 @@ type TraceContext struct {
 	ParentID  string `json:"parent_id,omitempty"`
 }
 
-// RouteContext carries delivery and tenancy information for one message.
+// RouteContext 承载消息投递和租户隔离所需的路由信息。
 type RouteContext struct {
 	OrgID     string `json:"org_id"`
 	SessionID string `json:"session_id,omitempty"`
 	WorkerID  string `json:"worker_id,omitempty"`
 }
 
-// Envelope is the common domain message wrapper used on MQ topics.
+// Envelope 是 MQ topic 上使用的通用领域消息信封。
 type Envelope[T any] struct {
 	ID        string      `json:"id"`
 	Type      MessageType `json:"type"`

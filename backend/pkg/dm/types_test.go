@@ -24,7 +24,10 @@ func TestWorkerTaskMessageJSONShape(t *testing.T) {
 		},
 		Body: WorkerTaskBody{
 			TaskType: TaskTypeAgentRun,
-			Priority: PriorityP0,
+			Execution: ExecutionTarget{
+				AssistantID: "assistant_1",
+				AgentID:     "agent_1",
+			},
 			Input: TaskInput{
 				Type: InputTypeMessage,
 				Text: "hello",
@@ -59,6 +62,13 @@ func TestWorkerTaskMessageJSONShape(t *testing.T) {
 	}
 	if _, ok := got["body"].(map[string]any); !ok {
 		t.Fatalf("expected body object in %s", body)
+	}
+	bodyObject := got["body"].(map[string]any)
+	if _, ok := bodyObject["target"]; ok {
+		t.Fatalf("target should be named execution in %s", body)
+	}
+	if _, ok := bodyObject["execution"].(map[string]any); !ok {
+		t.Fatalf("expected execution object in %s", body)
 	}
 }
 
