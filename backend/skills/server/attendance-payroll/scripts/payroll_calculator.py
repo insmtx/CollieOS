@@ -17,6 +17,7 @@ import sys
 import unicodedata
 from collections import defaultdict
 from datetime import datetime
+from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 from typing import Any
 
@@ -138,6 +139,12 @@ def number(value: Any) -> float | None:
     text = str(value).replace(",", "").replace("￥", "").replace("¥", "").strip()
     match = re.search(r"-?\d+(?:\.\d+)?", text)
     return float(match.group()) if match else None
+
+
+def money(value: float) -> float:
+    """Match Excel ROUND(x, 2) for leave deductions."""
+    quantized = Decimal(str(value)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    return float(quantized)
 
 
 def key(name: Any, project: Any, category: Any) -> tuple[str, str, str]:
@@ -623,7 +630,9 @@ def fuzzy_name_score(observed: Any, candidate: Any) -> tuple[float, str]:
         return 1.0, "姓名去除末尾括号备注后一致"
     ratio = difflib.SequenceMatcher(a=left, b=right).ratio()
     # OCR has a small, well-known set of visually similar Chinese characters.
-    confusion_pairs = {frozenset(pair) for pair in (("利", "丽"), ("翌", "罡"))}
+    confusion_pairs = {frozenset(pair) for pair in (
+        ("利", "丽"), ("翌", "罡"), ("燕", "艳"),
+    )}
     if len(left) == len(right):
         differences = [
             frozenset((a, b)) for a, b in zip(left, right) if a != b
@@ -632,9 +641,32 @@ def fuzzy_name_score(observed: Any, candidate: Any) -> tuple[float, str]:
             return 0.95, "单字 OCR 易混"
         if len(left) >= 3 and len(differences) == 1:
             return 0.85, "单字姓名近似"
+    if abs(len(left) - len(right)) == 1:
+        longer, shorter = (left, right) if len(left) > len(right) else (right, left)
+        rest = longer[1:]
+        if rest == shorter:
+            return 0.9, "多识别一字"
+        if len(rest) == len(shorter):
+            inner, inner_reason = _equal_length_name_score(rest, shorter)
+            if inner >= 0.85:
+                return min(inner, 0.9), "多识别一字且" + inner_reason
     if ratio >= 0.8:
         return ratio, f"编辑相似度 {ratio:.0%}"
     return ratio, ""
+
+
+def _equal_length_name_score(left: str, right: str) -> tuple[float, str]:
+    if left == right:
+        return 1.0, "姓名一致"
+    confusion_pairs = {frozenset(pair) for pair in (
+        ("利", "丽"), ("翌", "罡"), ("燕", "艳"),
+    )}
+    differences = [frozenset((a, b)) for a, b in zip(left, right) if a != b]
+    if len(differences) == 1 and differences[0] in confusion_pairs:
+        return 0.95, "单字 OCR 易混"
+    if len(left) >= 3 and len(differences) == 1:
+        return 0.85, "单字姓名近似"
+    return 0.0, ""
 
 
 def fuzzy_match_review_note(reason: str) -> str:
@@ -745,6 +777,32 @@ def is_personal_leave_mark(mark: str) -> bool:
     return normalized in {"事", "事假"} or normalized.startswith("事假")
 
 
+def is_sick_leave_mark(mark: str) -> bool:
+    normalized = clean(mark)
+    return normalized in {"病", "病假"} or normalized.startswith("病假")
+
+
+def is_absent_mark(mark: str) -> bool:
+    normalized = clean(mark)
+    return normalized in {"旷", "旷工"} or normalized.startswith("旷工")
+
+
+def is_paid_rest_mark(mark: str) -> bool:
+    text = clean(mark)
+    tokens = (
+        "年假", "换", "婚假", "婚", "产假", "陪产假", "陪产", "产",
+        "探亲假", "探亲", "探", "丧假", "丧", "公假", "公", "学习", "学",
+    )
+    if text in {"换", "年假", "婚", "婚假", "产", "产假", "陪产", "陪产假",
+                "探", "探亲", "探亲假", "丧", "丧假", "公", "公假", "学", "学习"}:
+        return True
+    return any(text.startswith(token) and token not in {"产", "公", "学", "探"} for token in tokens)
+
+
+def is_weekday_rest_mark(mark: str) -> bool:
+    return clean(mark) in {"休", "/"}
+
+
 def is_project_transfer_mark(mark: str) -> bool:
     text = clean(mark)
     if not text or text in KNOWN_ATTENDANCE_MARKS or is_personal_leave_mark(text):
@@ -752,6 +810,37 @@ def is_project_transfer_mark(mark: str) -> bool:
     return any(token in text for token in ("项目", "调入", "调往", "调动")) or (
         text.startswith("在") and "项目" in text
     )
+
+
+def is_departure_or_transfer_mark(mark: str) -> bool:
+    """调走/调入/离职在本表不再出勤，不能当事假。"""
+    text = clean(mark)
+    if not text:
+        return False
+    if text == "走" or text.startswith("走"):
+        return True
+    if any(token in text for token in ("调走", "调往", "调出", "调入", "调离", "调到", "离职", "入职")):
+        return True
+    return is_project_transfer_mark(text)
+
+
+def has_personal_leave_marks(records: list[dict[str, Any]]) -> bool:
+    return any(is_personal_leave_mark(mark) for record in records for mark in attendance_mark_values(record))
+
+
+def has_departure_or_transfer(records: list[dict[str, Any]]) -> bool:
+    for record in records:
+        if field_days([record], (
+            "entry_exit_days", "transfer_out_days", "transfer_in_days",
+            "调出天数", "调走天数", "调入天数",
+        )):
+            return True
+        note = record_note_text(record)
+        if any(token in note for token in ("调走", "调往", "调出", "调入", "调离", "离职", "入职")):
+            return True
+        if any(is_departure_or_transfer_mark(mark) for mark in attendance_mark_values(record)):
+            return True
+    return False
 
 
 def review_leave_labels(record: dict[str, Any]) -> list[str]:
@@ -762,6 +851,8 @@ def review_leave_labels(record: dict[str, Any]) -> list[str]:
             labels.append(mark)
     for field, caption in (
         ("maternity_leave_days", "产假"),
+        ("产假", "产假"),
+        ("产假天数", "产假"),
         ("paternity_leave_days", "陪产假"),
         ("home_leave_days", "探亲假"),
         ("marriage_leave_days", "婚假"),
@@ -770,6 +861,11 @@ def review_leave_labels(record: dict[str, Any]) -> list[str]:
     ):
         if number(record.get(field)):
             labels.append(caption)
+    note = record_note_text(record)
+    if "陪产" in note:
+        labels.append("陪产假")
+    elif "产假" in note or re.search(r"产\d+", note):
+        labels.append("产假")
     return list(dict.fromkeys(labels))
 
 
@@ -778,6 +874,279 @@ def month_length(month: str | None) -> int | None:
     if not match:
         return None
     return calendar.monthrange(int(match.group(1)), int(match.group(2)))[1]
+
+
+def month_non_working_dates(month: str | None, holiday_values: Any) -> set[str]:
+    """Weekends (except make-up workdays) plus statutory holidays in the month."""
+    if not month:
+        return set()
+    match = re.fullmatch(r"(\d{4})-(\d{1,2})", month.strip())
+    if not match:
+        return set()
+    year, month_value = int(match.group(1)), int(match.group(2))
+    _, days_in_month = calendar.monthrange(year, month_value)
+    official = OFFICIAL_CALENDAR.get(year, {})
+    working_weekends = official.get("working_weekends", set())
+    non_working = {
+        datetime(year, month_value, day).date().isoformat()
+        for day in range(1, days_in_month + 1)
+        if datetime(year, month_value, day).weekday() in {5, 6}
+        and datetime(year, month_value, day).date().isoformat() not in working_weekends
+    }
+    official_holidays = official.get("holidays", set())
+    supplied_holidays = holiday_values if isinstance(holiday_values, list) else []
+    for value in set(official_holidays) | {clean(item)[:10] for item in supplied_holidays}:
+        date_text = clean(value)[:10]
+        if date_text.startswith(f"{year:04d}-{month_value:02d}-") and re.fullmatch(r"\d{4}-\d{2}-\d{2}", date_text):
+            non_working.add(date_text)
+    return non_working
+
+
+def month_workday_dates(month: str | None, holiday_values: Any) -> list[str]:
+    match = re.fullmatch(r"(\d{4})-(\d{1,2})", (month or "").strip())
+    if not match:
+        return []
+    year, month_value = int(match.group(1)), int(match.group(2))
+    _, days_in_month = calendar.monthrange(year, month_value)
+    non_working = month_non_working_dates(month, holiday_values)
+    return [
+        datetime(year, month_value, day).date().isoformat()
+        for day in range(1, days_in_month + 1)
+        if datetime(year, month_value, day).date().isoformat() not in non_working
+    ]
+
+
+def iter_mark_entries(record: dict[str, Any]) -> list[tuple[str | None, str]]:
+    raw = record.get("daily_marks", record.get("days", []))
+    entries: list[tuple[str | None, str]] = []
+    if isinstance(raw, dict):
+        for key, value in raw.items():
+            mark = clean(value)
+            if mark:
+                entries.append((clean(key)[:10], mark))
+        return entries
+    if isinstance(raw, (list, tuple)):
+        for value in raw:
+            mark = clean(value)
+            if mark:
+                entries.append((None, mark))
+    return entries
+
+
+def holiday_values_from_records(records: list[dict[str, Any]]) -> list[str]:
+    values: list[str] = []
+    for record in records:
+        holidays = record.get("holiday_dates", record.get("holidays"))
+        if isinstance(holidays, list):
+            values.extend(str(item) for item in holidays)
+    return values
+
+
+def count_matching_marks(
+    records: list[dict[str, Any]],
+    month: str | None,
+    predicate,
+    workday_only: bool,
+) -> float:
+    dated = 0
+    undated = 0
+    saw_iso = False
+    holidays = holiday_values_from_records(records)
+    non_working = month_non_working_dates(month, holidays)
+    for record in records:
+        for date_text, mark in iter_mark_entries(record):
+            if not predicate(mark):
+                continue
+            if date_text and re.fullmatch(r"\d{4}-\d{2}-\d{2}", date_text):
+                saw_iso = True
+                if date_text in non_working:
+                    continue
+                dated += 1
+            else:
+                undated += 1
+    if saw_iso:
+        return float(dated)
+    return float(undated)
+
+
+def field_days(records: list[dict[str, Any]], keys: tuple[str, ...]) -> float:
+    total = 0.0
+    for record in records:
+        for key in keys:
+            total += number(record.get(key)) or 0
+    return total
+
+
+def combine_mark_or_field(
+    records: list[dict[str, Any]],
+    month: str | None,
+    predicate,
+    field_keys: tuple[str, ...],
+    workday_only: bool = True,
+) -> float:
+    fields = field_days(records, field_keys)
+    if fields:
+        return fields
+    return count_matching_marks(records, month, predicate, workday_only)
+
+
+def record_note_text(record: dict[str, Any]) -> str:
+    return clean(record.get("note", record.get("调动", record.get("备注"))))
+
+
+def maternity_or_paternity_note_days(records: list[dict[str, Any]], month: str | None) -> float:
+    """Read 产假/产30 from notes when vision did not fill maternity_leave_days."""
+    total = 0.0
+    fallback = calendar_base_workdays(month, holiday_values_from_records(records)) or 0.0
+    for record in records:
+        note = record_note_text(record)
+        if not note:
+            continue
+        if "陪产" not in note and "产假" not in note and not re.search(r"产\d+", note):
+            continue
+        match = re.search(r"(\d+(?:\.\d+)?)", note)
+        total += float(match.group(1)) if match else fallback
+    return total
+
+
+def paid_rest_workdays(records: list[dict[str, Any]], month: str | None) -> float:
+    """Non-pay-deducting rest on workdays, used to reduce required attendance."""
+    annual = combine_mark_or_field(
+        records, month, lambda mark: "年假" in clean(mark), ("annual_leave_days", "年假天数"),
+    )
+    comp = combine_mark_or_field(
+        records, month, lambda mark: clean(mark) == "换", ("comp_leave_days", "调休天数", "换休天数"),
+    )
+    statutory = 0.0
+    for keys, predicate in (
+        (("maternity_leave_days", "产假天数", "产假"), lambda mark: clean(mark) in {"产", "产假"} or clean(mark).startswith("产假")),
+        (("paternity_leave_days", "陪产假天数"), lambda mark: "陪产" in clean(mark)),
+        (("home_leave_days", "探亲假天数"), lambda mark: clean(mark) in {"探", "探亲", "探亲假"} or clean(mark).startswith("探亲")),
+        (("marriage_leave_days", "婚假天数"), lambda mark: clean(mark) in {"婚", "婚假"} or clean(mark).startswith("婚假")),
+        (("funeral_leave_days", "丧假天数"), lambda mark: "丧" in clean(mark)),
+        (("official_leave_days", "公假天数"), lambda mark: clean(mark) in {"公", "公假"} or clean(mark).startswith("公假")),
+        (("study_leave_days", "学习天数"), lambda mark: clean(mark) in {"学", "学习"} or clean(mark).startswith("学习")),
+    ):
+        statutory += combine_mark_or_field(records, month, predicate, keys)
+    if not combine_mark_or_field(
+        records, month,
+        lambda mark: clean(mark) in {"产", "产假"} or "陪产" in clean(mark) or clean(mark).startswith("产假"),
+        ("maternity_leave_days", "产假天数", "paternity_leave_days", "陪产假天数", "产假"),
+    ):
+        statutory += maternity_or_paternity_note_days(records, month)
+    weekday_xiu = field_days(records, ("weekday_rest_days",))
+    if not weekday_xiu:
+        weekday_xiu = count_matching_marks(records, month, is_weekday_rest_mark, True)
+        if not any(
+            date_text and re.fullmatch(r"\d{4}-\d{2}-\d{2}", date_text)
+            for record in records
+            for date_text, mark in iter_mark_entries(record)
+            if is_weekday_rest_mark(mark)
+        ):
+            weekday_xiu = 0.0
+    return annual + comp + statutory + weekday_xiu
+
+
+def transfer_or_departure_workdays(records: list[dict[str, Any]], month: str | None) -> float:
+    return combine_mark_or_field(
+        records, month, is_departure_or_transfer_mark,
+        ("entry_exit_days", "transfer_out_days", "transfer_in_days", "调出天数", "调走天数", "调入天数"),
+    )
+
+
+def marked_sick_days(records: list[dict[str, Any]], month: str | None) -> float:
+    return combine_mark_or_field(
+        records, month, is_sick_leave_mark, ("sick_leave_days", "病假天数"),
+    )
+
+
+def marked_absent_days(records: list[dict[str, Any]], month: str | None) -> float:
+    marks = count_matching_marks(records, month, is_absent_mark, True)
+    fields = field_days(records, ("absent_days", "旷工天数"))
+    return marks if marks else fields
+
+
+def longest_absent_streak(records: list[dict[str, Any]], month: str | None) -> float:
+    holidays = holiday_values_from_records(records)
+    workdays = month_workday_dates(month, holidays)
+    index = {date_text: i for i, date_text in enumerate(workdays)}
+    dates: list[str] = []
+    for record in records:
+        for date_text, mark in iter_mark_entries(record):
+            if date_text and re.fullmatch(r"\d{4}-\d{2}-\d{2}", date_text) and is_absent_mark(mark):
+                if date_text in index:
+                    dates.append(date_text)
+    if not dates:
+        return 0.0
+    best = current = 0
+    prev: int | None = None
+    for date_text in sorted(set(dates)):
+        pos = index[date_text]
+        if prev is not None and pos == prev + 1:
+            current += 1
+        else:
+            current = 1
+        prev = pos
+        best = max(best, current)
+    return float(best)
+
+
+def split_attendance_leave(
+    records: list[dict[str, Any]],
+    actual: float | None,
+    month: str | None,
+) -> tuple[float | None, float, float, float, float]:
+    """Return required, personal, sick, absent, consecutive-absent workdays."""
+    holidays = holiday_values_from_records(records)
+    base = calendar_base_workdays(month, holidays)
+    paid = paid_rest_workdays(records, month)
+    transfer = transfer_or_departure_workdays(records, month)
+    required = max((base or 0) - paid - transfer, 0.0) if base is not None else None
+    if actual is None or required is None:
+        return required, 0.0, 0.0, 0.0, longest_absent_streak(records, month)
+    gap = max(required - actual, 0.0)
+    absent = min(marked_absent_days(records, month), gap)
+    sick = min(marked_sick_days(records, month), max(gap - absent, 0.0))
+    personal = max(gap - absent - sick, 0.0)
+    if (
+        personal
+        and has_departure_or_transfer(records)
+        and not has_personal_leave_marks(records)
+    ):
+        required = max(required - personal, 0.0)
+        personal = 0.0
+    return required, personal, sick, absent, longest_absent_streak(records, month)
+
+
+def statutory_pay_suspended(required: float | None, personal: float, absent: float, consecutive: float) -> bool:
+    if required is not None and required > 0 and personal + 1e-9 >= required:
+        return True
+    return absent >= 5 or consecutive >= 3
+
+
+def apply_statutory_leave_pay(
+    position: float | None,
+    performance: float | None,
+    required: float | None,
+    personal: float,
+    sick: float,
+    absent: float,
+    consecutive: float,
+) -> tuple[float, float, bool, bool]:
+    """Return adjusted position, performance, suspend-all, stop-performance."""
+    suspend = statutory_pay_suspended(required, personal, absent, consecutive)
+    stop_performance = suspend or absent >= 1 or personal > 7 or sick > 15
+    if suspend:
+        return 0.0, 0.0, True, True
+    if position is None:
+        adjusted_position = 0.0
+    else:
+        adjusted_position = max(money(position - position / 21.75 * personal), 0)
+    if stop_performance or performance is None:
+        adjusted_performance = 0.0
+    else:
+        adjusted_performance = max(money(performance - performance / 21.75 * (personal + sick)), 0)
+    return adjusted_position, adjusted_performance, False, stop_performance
 
 
 def attendance_days(record: dict[str, Any], month: str | None = None) -> tuple[float | None, float]:
@@ -799,18 +1168,7 @@ def attendance_days(record: dict[str, Any], month: str | None = None) -> tuple[f
         actual = float(sum(1 for mark in marks if is_attendance_mark(mark)))
         if not marks:
             actual = None
-    # 有格子时只数「事/事假」，忽略 JSON 里误填的 personal_leave_days。
-    # 无格子时采用 personal_leave_days；leave_days 不是事假。
-    # 不得因出勤+事假=当月日历天数而清零（连续事假如 17+13=30）。
-    if marks:
-        return actual, float(sum(1 for mark in marks if is_personal_leave_mark(mark)))
-    explicit = number(record.get(
-        "personal_leave_days",
-        record.get("personal_leave", record.get("事假天数")),
-    ))
-    if explicit:
-        return actual, float(explicit)
-    return actual, 0
+    return actual, 0.0
 
 
 def has_attendance_evidence(record: dict[str, Any]) -> bool:
@@ -895,30 +1253,9 @@ def weekend_slots(month: str | None) -> int | None:
 
 def calendar_base_workdays(month: str | None, holiday_values: Any) -> float | None:
     """Calculate workdays from month-specific holidays and make-up working days."""
-    if not month:
+    if not month or not re.fullmatch(r"(\d{4})-(\d{1,2})", month.strip()):
         return None
-    match = re.fullmatch(r"(\d{4})-(\d{1,2})", month.strip())
-    if not match:
-        return None
-    year, month_value = int(match.group(1)), int(match.group(2))
-    _, days_in_month = calendar.monthrange(year, month_value)
-    official = OFFICIAL_CALENDAR.get(year, {})
-    working_weekends = official.get("working_weekends", set())
-    non_working = {
-        datetime(year, month_value, day).date().isoformat()
-        for day in range(1, days_in_month + 1)
-        if datetime(year, month_value, day).weekday() in {5, 6}
-        and datetime(year, month_value, day).date().isoformat() not in working_weekends
-    }
-    # Vision results are evidence, not an authority over published calendars.
-    # Always retain known statutory days; merge extra supplied dates afterwards.
-    official_holidays = official.get("holidays", set())
-    supplied_holidays = holiday_values if isinstance(holiday_values, list) else []
-    for value in set(official_holidays) | {clean(item)[:10] for item in supplied_holidays}:
-        date_text = clean(value)[:10]
-        if date_text.startswith(f"{year:04d}-{month_value:02d}-") and re.fullmatch(r"\d{4}-\d{2}-\d{2}", date_text):
-            non_working.add(date_text)
-    return float(days_in_month - len(non_working))
+    return float(len(month_workday_dates(month, holiday_values)))
 
 
 def month_statutory_holidays(month: str | None, holiday_values: Any) -> list[str]:
@@ -1138,6 +1475,42 @@ def group_attendance_records(attendance: list[dict[str, Any]]) -> list[list[dict
         if unspecified:
             grouped.append(unspecified)
     return grouped
+
+
+def history_cluster_key(
+    record: dict[str, Any],
+    historical_rows: list[dict[str, Any]],
+) -> tuple[str, str] | None:
+    """Stable person key when attendance uniquely maps to one historical payroll row."""
+    identity = row_identity(record)
+    exact = [row for row in historical_rows if identity_matches(identity, row_identity(row))]
+    names = {normalized_name(row.get("name")) for row in exact if normalized_name(row.get("name"))}
+    if len(names) == 1:
+        category = clean(exact[0].get("category")) or identity[2]
+        return next(iter(names)), category
+    if exact:
+        return None
+    fuzzy, _, ambiguity = uniquely_fuzzy_matched(record, historical_rows, identity)
+    if fuzzy is None or ambiguity:
+        return None
+    return normalized_name(fuzzy.get("name")), clean(fuzzy.get("category")) or identity[2]
+
+
+def merge_attendance_groups_by_history(
+    grouped: list[list[dict[str, Any]]],
+    historical_rows: list[dict[str, Any]],
+) -> list[list[dict[str, Any]]]:
+    """Merge OCR name variants that uniquely match the same historical person."""
+    clusters: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+    leftover: list[list[dict[str, Any]]] = []
+    for records in grouped:
+        keys = {history_cluster_key(record, historical_rows) for record in records}
+        keys.discard(None)
+        if len(keys) != 1:
+            leftover.append(records)
+            continue
+        clusters[next(iter(keys))].extend(records)
+    return leftover + list(clusters.values())
 
 
 def attendance_segments(records: list[dict[str, Any]], month: str | None) -> list[dict[str, Any]]:
@@ -1365,7 +1738,9 @@ def calculate(
     historical_rows = [row for row in historical_rows if row_identity(row)[0]]
     month_no = month_number(month)
     details, baselines, attendance_out, exceptions, reconciliation = [], [], [], [], []
-    for records in group_attendance_records(attendance):
+    for records in merge_attendance_groups_by_history(
+        group_attendance_records(attendance), historical_rows,
+    ):
         record = records[0]
         identity = row_identity(record)
         name = identity[0]
@@ -1402,6 +1777,9 @@ def calculate(
             record, baseline_identity, historical_rows, month,
         )
         issues.extend(history_issues)
+        ocr_names = {normalized_name(item.get("name")) for item in records if normalized_name(item.get("name"))}
+        if len(ocr_names) > 1:
+            issues.append("跨页考勤姓名不完全一致，已按唯一历史工资匹配合并为一人，需人工复核是否同一人")
         segments = attendance_segments(records, month)
         resolved_project = display_project(segments, base)
         resolved_category = (
@@ -1436,40 +1814,32 @@ def calculate(
             issues.append(
                 f"同月历史工资表工作天数为{hist_days:g}，与考勤实际出勤{actual:g}不一致，请核对本月工资表与考勤"
             )
-        personal_leave = 0.0
-        sick = 0.0
-        absent = 0.0
-        for item in records:
-            _, leave = attendance_days(item, month)
-            personal_leave += leave
-            sick += number(item.get("sick_leave_days")) or 0
-            absent += number(item.get("absent_days")) or 0
         if not any(has_attendance_evidence(item) for item in records):
             issues.append("缺少实际出勤字段或每日考勤，未将缺失误作零出勤")
             actual = None
+        required, personal_leave, sick, absent, consecutive_absent = split_attendance_leave(
+            records, actual, month,
+        )
         for item in records:
             item_actual, _ = attendance_days(item, month)
             mismatch = attendance_mark_mismatch_issue(item, item_actual, month)
             if mismatch:
                 issues.append(mismatch)
-        for label, value in (("病假", sick), ("旷工", absent)):
-            if value:
-                issues.append(f"{label}暂不计算，需人工复核")
         for item in records:
-            for mark in review_leave_labels(item):
-                issues.append(f"{mark}暂不计算，需人工复核")
             unrecognized = [
                 mark for mark in item.get("unrecognized_marks", [])
                 if not known_attendance_mark(mark)
             ]
             if unrecognized:
                 issues.append("存在未识别考勤符号")
-            if item.get("entry_exit_days"):
-                issues.append("入离职分项暂不计算")
+            if item.get("entry_exit_days") or has_departure_or_transfer([item]):
+                issues.append("调出/调入或入离职天数已冲减应出勤，未按事假扣款")
             for mark in attendance_mark_values(item):
                 if not known_attendance_mark(mark):
                     issues.append("存在未识别考勤符号")
                     break
+            for mark in review_leave_labels(item):
+                issues.append(f"{mark}已按带薪假冲减应出勤，请核对是否超出法定天数")
 
         position = number(base.get("position_salary"))
         performance = number(base.get("performance"))
@@ -1490,7 +1860,9 @@ def calculate(
             issues.append("缺少绩效工资标准")
         if number(base.get("seniority")) is None:
             issues.append("缺少工龄工资基准")
-        adjusted_performance = max(performance - performance / 21.75 * personal_leave, 0) if performance is not None else 0
+        adjusted_position, adjusted_performance, suspend_all, stop_performance = apply_statutory_leave_pay(
+            position, performance, required, personal_leave, sick, absent, consecutive_absent,
+        )
 
         pays_overtime = historical_overtime_eligible(base)
         overtime_standard = number(base.get("overtime_standard")) if pays_overtime else None
@@ -1508,14 +1880,18 @@ def calculate(
         elif overtime_standard is not None and actual is not None:
             overtime_days = min(max(actual - effective_base_workdays, 0), effective_overtime_cap)
             overtime_amount = overtime_days * overtime_standard
-        total = sum((position or 0, adjusted_performance, seniority, title, construction,
-                     phone, hot, transport, overtime_amount))
-        display_name = record.get("name") or name
-        for field, value in (("sick_leave_days", sick), ("absent_days", absent)):
-            if value:
-                exceptions.append({"姓名": display_name, "项目": resolved_project, "人员类别": resolved_category,
-                                    "类型": "病假" if field == "sick_leave_days" else "旷工",
-                                    "说明": "规则未确认，金额未扣除"})
+        paid_seniority, paid_title, paid_transport = seniority, title, transport
+        paid_construction, paid_phone, paid_hot = construction, phone, hot
+        paid_overtime_days, paid_overtime_amount = overtime_days, overtime_amount
+        paid_construction_terms = construction_terms
+        if suspend_all:
+            paid_seniority = paid_title = paid_transport = 0
+            paid_construction = paid_phone = paid_hot = 0
+            paid_overtime_days = paid_overtime_amount = 0
+            paid_construction_terms = []
+        total = sum((adjusted_position, adjusted_performance, paid_seniority, paid_title,
+                     paid_construction, paid_phone, paid_hot, paid_transport, paid_overtime_amount))
+        display_name = clean(base.get("name")) or record.get("name") or name
         for issue in dict.fromkeys(issues):
             if any(item.get("姓名") == display_name and item.get("说明") == issue for item in exceptions):
                 continue
@@ -1528,22 +1904,27 @@ def calculate(
                           "话费补贴": phone, "高温补贴": hot, "交通补贴": transport,
                           "加班标准": overtime_standard})
         attendance_out.append({"姓名": display_name, "项目": resolved_project, "人员类别": resolved_category,
-                               "实际出勤": actual, "事假天数": personal_leave,
-                               "病假天数": sick, "旷工天数": absent,
+                               "应出勤": required, "实际出勤": actual, "事假天数": personal_leave,
+                               "病假天数": sick, "旷工天数": absent, "连续旷工": consecutive_absent,
                                "来源": "当月考勤表"})
         details.append({
-            "姓名": display_name, "项目": resolved_project, "人员类别": resolved_category, "实际出勤": actual,
-            "事假天数": personal_leave, "岗位工资": position or 0,
-            "绩效工资": adjusted_performance, "工龄工资": seniority,
-            "职称工资": title, "施工补贴": construction, "话费补贴": phone,
-            "高温补贴": hot, "交通补贴": transport, "加班天数": overtime_days,
-            "加班费": overtime_amount, "应发工资": total,
+            "姓名": display_name, "项目": resolved_project, "人员类别": resolved_category,
+            "应出勤": required, "实际出勤": actual,
+            "事假天数": personal_leave, "病假天数": sick, "旷工天数": absent,
+            "连续旷工": consecutive_absent,
+            "岗位工资": adjusted_position, "绩效工资": adjusted_performance,
+            "工龄工资": paid_seniority, "职称工资": paid_title, "施工补贴": paid_construction,
+            "话费补贴": paid_phone, "高温补贴": paid_hot, "交通补贴": paid_transport,
+            "加班天数": paid_overtime_days, "加班费": paid_overtime_amount, "应发工资": total,
             "计算状态": "需复核" if issues else "已计算",
             "复核说明": "；".join(issues),
+            "_position_standard": position,
             "_performance_standard": performance,
-            "_construction_terms": construction_terms,
-            "_pays_overtime": pays_overtime,
+            "_construction_terms": paid_construction_terms,
+            "_pays_overtime": False if suspend_all else pays_overtime,
             "_overtime_standard": overtime_standard,
+            "_suspend_all": suspend_all,
+            "_stop_performance": stop_performance,
         })
         comparable_history = matched_history
         historical_gross = (
@@ -1606,12 +1987,33 @@ def payroll_detail_cell(
     excel_row: int,
     columns: dict[str, str],
 ) -> Any:
+    required_cell = columns.get("应出勤")
+    leave_cell = columns.get("事假天数")
+    sick_cell = columns.get("病假天数")
+    absent_cell = columns.get("旷工天数")
+    streak_cell = columns.get("连续旷工")
+    suspend = None
+    if required_cell and leave_cell and absent_cell and streak_cell:
+        suspend = (
+            f"OR(AND({required_cell}{excel_row}>0,{leave_cell}{excel_row}>={required_cell}{excel_row}),"
+            f"{absent_cell}{excel_row}>=5,{streak_cell}{excel_row}>=3)"
+        )
+    if header == "岗位工资":
+        standard = number(row.get("_position_standard"))
+        if standard is None or not leave_cell or not suspend:
+            return row.get(header)
+        return f"=IF({suspend},0,MAX(ROUND({standard}-{standard}/21.75*{leave_cell}{excel_row},2),0))"
     if header == "绩效工资":
         standard = number(row.get("_performance_standard"))
-        leave_cell = columns.get("事假天数")
-        if standard is None or not leave_cell:
+        if standard is None or not leave_cell or not sick_cell or not absent_cell or not suspend:
             return row.get(header)
-        return f"=MAX({standard}-{standard}/21.75*{leave_cell}{excel_row},0)"
+        stop = (
+            f"OR({suspend},{absent_cell}{excel_row}>=1,{leave_cell}{excel_row}>7,{sick_cell}{excel_row}>15)"
+        )
+        return (
+            f"=IF({stop},0,MAX(ROUND({standard}-{standard}/21.75*"
+            f"({leave_cell}{excel_row}+{sick_cell}{excel_row}),2),0))"
+        )
     if header == "施工补贴":
         terms = row.get("_construction_terms") or []
         actual_cell = columns.get("实际出勤")
@@ -1636,6 +2038,23 @@ def payroll_detail_cell(
         ]
         return "=" + "+".join(parts) if parts else row.get(header)
     return row.get(header)
+
+
+def column_display_width(column) -> float:
+    """Size columns by header/display text, not by Excel formula length."""
+    widest = 0
+    for cell in column:
+        value = cell.value
+        if value is None:
+            continue
+        if isinstance(value, str) and value.startswith("="):
+            widest = max(widest, 12)
+            continue
+        if isinstance(value, (int, float)):
+            widest = max(widest, min(len(f"{value:.2f}"), 14))
+            continue
+        widest = max(widest, min(len(str(value)), 32))
+    return min(max(widest + 2, 10), 32)
 
 
 def write_workbook(result: dict[str, list[dict[str, Any]]], output: Path) -> None:
@@ -1669,7 +2088,7 @@ def write_workbook(result: dict[str, list[dict[str, Any]]], output: Path) -> Non
             sheet.append(values)
         for column in sheet.columns:
             letter = column[0].column_letter
-            sheet.column_dimensions[letter].width = min(max(max(len(str(c.value or "")) for c in column) + 2, 10), 32)
+            sheet.column_dimensions[letter].width = column_display_width(column)
         for row in sheet.iter_rows():
             for cell in row:
                 if isinstance(cell.value, (int, float)) or (
