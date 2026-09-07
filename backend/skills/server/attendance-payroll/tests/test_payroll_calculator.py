@@ -537,18 +537,20 @@ class PayrollCalculatorTest(unittest.TestCase):
         self.assertEqual(detail["事假天数"], 0)
         self.assertTrue(any("合并为一人" in item["说明"] for item in rows["review_exceptions"]))
 
-        prefixed = calculate(
-            [], [{"name": "张三", "project": "A项目", "category": "外包",
+        skipped = calculate(
+            [], [{"name": "张三丰", "project": "A项目", "category": "外包",
                   "position_salary": 2175, "performance": 2700}],
             [
-                {"name": "李张三", "project": "A项目", "category": "外包", "actual_work_days": 10},
-                {"name": "张三", "project": "B项目", "category": "外包", "actual_work_days": 11},
+                {"name": "张三丰", "project": "A项目", "category": "外包", "actual_work_days": 25},
+                {"name": "张丰", "project": "A项目", "category": "外包",
+                 "actual_work_days": 21, "note": "陪产假"},
             ],
             "2026-06", None, None,
         )
-        self.assertEqual(len(prefixed["payroll_detail"]), 1)
-        self.assertEqual(prefixed["payroll_detail"][0]["姓名"], "张三")
-        self.assertEqual(prefixed["payroll_detail"][0]["实际出勤"], 21)
+        days = {row["姓名"]: row["实际出勤"] for row in skipped["payroll_detail"]}
+        self.assertEqual(days.get("张三丰"), 25)
+        self.assertNotIn(46, days.values())
+        self.assertFalse(any(row.get("实际出勤") == 46 for row in skipped["payroll_detail"]))
 
     def test_fuzzy_name_candidate_is_not_used_when_tied(self):
         rows = calculate(

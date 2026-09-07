@@ -641,32 +641,9 @@ def fuzzy_name_score(observed: Any, candidate: Any) -> tuple[float, str]:
             return 0.95, "单字 OCR 易混"
         if len(left) >= 3 and len(differences) == 1:
             return 0.85, "单字姓名近似"
-    if abs(len(left) - len(right)) == 1:
-        longer, shorter = (left, right) if len(left) > len(right) else (right, left)
-        rest = longer[1:]
-        if rest == shorter:
-            return 0.9, "多识别一字"
-        if len(rest) == len(shorter):
-            inner, inner_reason = _equal_length_name_score(rest, shorter)
-            if inner >= 0.85:
-                return min(inner, 0.9), "多识别一字且" + inner_reason
-    if ratio >= 0.8:
-        return ratio, f"编辑相似度 {ratio:.0%}"
-    return ratio, ""
-
-
-def _equal_length_name_score(left: str, right: str) -> tuple[float, str]:
-    if left == right:
-        return 1.0, "姓名一致"
-    confusion_pairs = {frozenset(pair) for pair in (
-        ("利", "丽"), ("翌", "罡"), ("燕", "艳"),
-    )}
-    differences = [frozenset((a, b)) for a, b in zip(left, right) if a != b]
-    if len(differences) == 1 and differences[0] in confusion_pairs:
-        return 0.95, "单字 OCR 易混"
-    if len(left) >= 3 and len(differences) == 1:
-        return 0.85, "单字姓名近似"
-    return 0.0, ""
+        if ratio >= 0.8:
+            return ratio, f"编辑相似度 {ratio:.0%}"
+    return 0, ""
 
 
 def fuzzy_match_review_note(reason: str) -> str:
