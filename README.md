@@ -17,7 +17,7 @@
 ![Go](./docs/images/badges/go.svg)
 ![Web](./docs/images/badges/web.svg)
 ![Protocol](./docs/images/badges/protocol-mcp.svg)
-[![Website](./docs/images/badges/website.svg)](https://leros.ai/)
+[![Website](./docs/images/badges/website.svg)](https://lework.ai/)
 
 **目录** · [项目简介](#项目简介) · [界面预览](#界面预览) · [一分钟理解](#一分钟理解) · [协作流程](#协作流程) · [核心实体](#核心实体) · [核心特性](#核心特性) · [系统架构](#系统架构) · [快速开始](#快速开始) · [开发指南](#开发指南) · [MCP Server](#mcp-server) · [生态与联动](#生态与联动) · [相关文档](#相关文档) · [贡献指南](#贡献指南) · [社区与支持](#社区与支持) · [许可证](#许可证)
 
@@ -27,7 +27,7 @@
 
 ## 项目简介
 
-Lework 是一个面向企业与团队的开源 AI 工作平台。它是 [智慧矩阵（insmtx）](https://insmtx.com/)企业 AI 产品矩阵中的**企业级数字员工 / AI 队友**（官网：[leros.ai](https://leros.ai/)），并与同矩阵的 **CoreKG**（企业知识引擎）协同：CoreKG 提供知识供给，Lework 负责任务执行与经验沉淀。
+Lework 是一个面向企业与团队的开源 AI 工作平台。它是 [智慧矩阵（insmtx）](https://insmtx.com/)企业 AI 产品矩阵中的**企业级数字员工 / AI 队友**（官网：[lework.ai](https://lework.ai/)），并与同矩阵的 **CoreKG**（企业知识引擎）协同：CoreKG 提供知识供给，Lework 负责任务执行与经验沉淀。
 
 它不是又一款开放的聊天机器人，也不是一个单纯的工作流编排引擎。Lework 把 AI 当作**可管理的生产力**——AI 辅助工作越来越普及，但产出往往收不回来，对话结束即清零。Lework 解决的是**没有分工、没有指派、没有交付物、没有追踪**的问题：
 
@@ -323,7 +323,7 @@ Lework 是 [智慧矩阵（insmtx）](https://insmtx.com/)企业 AI 产品矩阵
 
 | 产品 | 角色 | 说明 |
 |---|---|---|
-| **[Lework](https://leros.ai/)** | 企业级 AI 工作平台 / 数字员工 | 以真实项目成员身份接收与执行任务、交付成果，沉淀 Skill 与项目记忆（本仓库） |
+| **[Lework](https://lework.ai/)** | 企业级 AI 工作平台 / 数字员工 | 以真实项目成员身份接收与执行任务、交付成果，沉淀 Skill 与项目记忆（本仓库） |
 | **[CoreKG](https://corekg.com/)** | 企业 AI 知识引擎 | 多源知识接入、治理、理解与检索，提供知识问答、知识图谱、引用溯源；在 Lework 中以 MCP「平台连接器」供任务检索企业知识、补充上下文并关联来源 |
 | [CatAPI](https://catapi.insmtx.com/) | AI 能力开放平台 | 通过标准 API 提供文档解析 / OCR / 结构化提取等成熟 AI 能力 |
 | [Insmtx Cloud](https://insmtx.com/) | 大模型管理平台 | 模型接入、智能路由、权限与用量管理 |
@@ -350,7 +350,7 @@ Lework 是 [智慧矩阵（insmtx）](https://insmtx.com/)企业 AI 产品矩阵
 | [docs/operations/private-deployment-guide.md](docs/operations/private-deployment-guide.md) | 私有化部署指南 |
 | [docs/operations/project-structure.md](docs/operations/project-structure.md) | 项目结构索引 |
 | [frontend/README.md](frontend/README.md) | 前端开发指南 |
-| [leros.ai](https://leros.ai/) | Lework 官网（产品能力 / 技术架构 / 私有化方案） |
+| [lework.ai](https://lework.ai/) | Lework 官网（产品能力 / 技术架构 / 私有化方案） |
 | [insmtx.com/products](https://insmtx.com/products) | 智慧矩阵产品矩阵（CoreKG · Lework · CatAPI 等） |
 
 ## 贡献指南
@@ -366,7 +366,7 @@ Lework 是 [智慧矩阵（insmtx）](https://insmtx.com/)企业 AI 产品矩阵
 
 - 使用问题 / 缺陷报告：[GitHub Issues](https://github.com/insmtx/Lework/issues)
 - 功能需求与讨论：同上，请带 `feature` / `discussion` 标签发起
-- 产品官网：[leros.ai](https://leros.ai/)
+- 产品官网：[lework.ai](https://lework.ai/)
 - **📰 近期动态**：最近运营宣传的公众号文章（[阅读全文](https://mp.weixin.qq.com/s/cqudtC3wBAQqLk509HsTWA)）
 
 ## 许可证
