@@ -4,6 +4,10 @@
     {
       "name": "张三",
       "project": "A项目",
+      "page_project": "A项目",
+      "project_segments": [
+        {"project": "A项目", "actual_work_days": 23}
+      ],
       "category": "外聘",
       "actual_work_days": 23,
       "marked_work_days": 23,

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shutil
 import sys
 from pathlib import Path
@@ -20,6 +21,14 @@ IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"}
 def fail(code: int, message: str) -> None:
     print(message, file=sys.stderr)
     raise SystemExit(code)
+
+
+def json_path_for_page_image(image_path: str) -> str:
+    """Map rendered page-N-part-1.png to sibling page-N.json."""
+    path = Path(image_path)
+    match = re.match(r"(page-\d+)", path.stem, flags=re.I)
+    name = f"{match.group(1)}.json" if match else f"{path.stem}.json"
+    return str(path.with_name(name))
 
 
 def prepare_pages(sources: list[Path], output_dir: Path) -> list[str]:
@@ -39,7 +48,14 @@ def prepare_pages(sources: list[Path], output_dir: Path) -> list[str]:
             continue
         if suffix in IMAGE_SUFFIXES:
             target = output_dir / f"doc-{index}{suffix}"
-            shutil.copy2(source, target)
+            try:
+                from PIL import Image
+                from pdf_prepare import deskew_image
+
+                with Image.open(source) as image:
+                    deskew_image(image).save(target)
+            except Exception:
+                shutil.copy2(source, target)
             pages.append(str(target))
             continue
         fail(ERROR_INPUT, f"unsupported attendance file type: {suffix or source.name}")
@@ -58,7 +74,12 @@ def main() -> None:
     sources = [Path(raw).expanduser().resolve() for raw in args.input]
     output_dir = Path(args.output_dir).expanduser().resolve()
     pages = prepare_pages(sources, output_dir)
-    print(json.dumps({"ok": True, "pages": pages, "count": len(pages)}, ensure_ascii=False))
+    print(json.dumps({
+        "ok": True,
+        "pages": pages,
+        "json": [json_path_for_page_image(page) for page in pages],
+        "count": len(pages),
+    }, ensure_ascii=False))
 
 
 if __name__ == "__main__":
