@@ -1388,7 +1388,8 @@ function AccountManagementDialog({
 					<div className="relative">
 						<button
 							type="button"
-							className="group relative size-24 overflow-hidden rounded-full bg-[var(--leros-primary)] text-white ring-4 ring-slate-100"
+							className="leros-avatar group relative overflow-hidden bg-transparent text-[11px] font-semibold"
+							style={{ background: "transparent", width: 96, height: 96 }}
 							onClick={() => fileInputRef.current?.click()}
 							disabled={uploadingAvatar}
 							aria-label="上传头像"
@@ -1404,10 +1405,12 @@ function AccountManagementDialog({
 											seed={`user:${displayPhone || user.name}`}
 											alt={user.name ?? "Avatar"}
 											className="h-full w-full"
-											size={128}
+											size={96}
 										/>
 									) : (
-										<span className="text-xl font-semibold">{getAvatarInitial("Lework")}</span>
+										<span className="text-xl font-semibold">
+											{getAvatarInitial("Lework")}
+										</span>
 									)
 								}
 							/>
@@ -1510,8 +1513,8 @@ function ProfileAvatar({ user }: { user: AuthUser | null }) {
 
 	return (
 		<span
-			className="leros-avatar overflow-hidden text-[11px] font-semibold"
-			style={{ background: "var(--leros-primary)", color: "#fff" }}
+			className="leros-avatar overflow-hidden bg-transparent text-[11px] font-semibold"
+			style={{ background: "transparent" }}
 		>
 			<ProtectedImage
 				src={user?.avatarUrl}
