@@ -79,6 +79,7 @@ import {
 	projectMemberListClassName,
 	sortProjectMembers,
 } from "../project-members/ProjectMemberPickerDialog";
+import { applyCurrentUserProfileToProjectMembers } from "../project-members/project-member-profile";
 import { canQuickRemoveProjectMember } from "../project-members/project-member-removal";
 import { openProjectFilePreview } from "./file-preview-store";
 import { PROJECT_FILE_VERSION_CHANGED_EVENT } from "./file-preview-utils";
@@ -690,25 +691,28 @@ function ProjectConfigSidebar({
 	}, [mcpOptions, mcpSearch, selectedMCPIDs]);
 	const projectMembersWithLatestAssistantAvatar = useMemo(
 		() =>
-			project.members.map((member) => {
-				if (member.type !== "assistant") return member;
-				const matchedAssistant = assistants.find(
-					(assistant) =>
-						(member.publicId && assistant.publicId === member.publicId) ||
-						(member.memberId > 0 && assistant.id === member.memberId),
-				);
-				if (!matchedAssistant) return member;
+			applyCurrentUserProfileToProjectMembers(
+				project.members.map((member) => {
+					if (member.type !== "assistant") return member;
+					const matchedAssistant = assistants.find(
+						(assistant) =>
+							(member.publicId && assistant.publicId === member.publicId) ||
+							(member.memberId > 0 && assistant.id === member.memberId),
+					);
+					if (!matchedAssistant) return member;
 
-				return {
-					...member,
-					name: member.name || matchedAssistant.name,
-					roleName: matchedAssistant.roleName,
-					description: member.description || matchedAssistant.description,
-					// 中文注释：项目详情里的成员头像可能是旧快照，优先用最新 AI 队友头像 public_id。
-					avatarUrl: matchedAssistant.avatar || member.avatarUrl,
-				};
-			}),
-		[assistants, project.members],
+					return {
+						...member,
+						name: member.name || matchedAssistant.name,
+						roleName: matchedAssistant.roleName,
+						description: member.description || matchedAssistant.description,
+						// 中文注释：项目详情里的成员头像可能是旧快照，优先用最新 AI 队友头像 public_id。
+						avatarUrl: matchedAssistant.avatar || member.avatarUrl,
+					};
+				}),
+				user,
+			),
+		[assistants, project.members, user],
 	);
 
 	const saveDescription = async () => {
